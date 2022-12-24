@@ -53,7 +53,9 @@ def configure() {
 Map getReplicaCommands() {
     return ([ "setBatteryValue":[[name:"battery*",type:"NUMBER"]], 
               "setHumidityValue":[[name:"humidity*",type:"NUMBER"]],
-              "setTemperatureValue":[[name:"temperature*",type:"NUMBER"]]])
+              "setTemperatureValue":[[name:"temperature*",type:"NUMBER"]],
+              "setHealthStatusValue":[[name:"healthStatus*",type:"ENUM"]]
+            ])
 }
 
 def setBatteryValue(value) {
@@ -80,6 +82,10 @@ Map getReplicaTriggers() {
     return (["refresh":[]])
 }
 
+def setHealthStatusValue(value) {    
+    sendEvent(name: "healthStatus", value: value, descriptionText: "${device.displayName} healthStatus set to $value")
+}
+
 private def sendCommand(String name, def value=null, String unit=null, data=[:]) {
     parent?.deviceTriggerHandler(device, [name:name, value:value, unit:unit, data:data, now:now])
 }
@@ -89,12 +95,14 @@ void refresh() {
 }
 
 String getReplicaRules() {
-    return """{"version":1,"components":[ 
+    return """{"version":1,"components":[
         
         {"trigger":{"title":"IntegerPercent","type":"attribute","properties":{"value":{"type":"integer","minimum":0,"maximum":100},"unit":{"type":"string","enum":["%"],"default":"%"}},"additionalProperties":false,"required":["value"],"capability":"battery","attribute":"battery","label":"attribute: battery.*"},"command":{"name":"setBatteryValue","label":"command: setBatteryValue(battery*)","type":"command","parameters":[{"name":"battery*","type":"NUMBER"}]},"type":"smartTrigger","mute":true},
 
         {"trigger":{"title":"IntegerPercent","type":"attribute","properties":{"value":{"type":"integer","minimum":0,"maximum":100},"unit":{"type":"string","enum":["%"],"default":"%"}},"additionalProperties":false,"required":["value"],"capability":"humidity","attribute":"humidity","label":"attribute: humidity.*"},"command":{"name":"setHumidityValue","label":"command: setHumidityValue(humidity*)","type":"command","parameters":[{"name":"humidity*","type":"NUMBER"}]},"type":"smartTrigger","mute":true},
         
-        {"trigger":{"type":"attribute","properties":{"value":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000},"unit":{"type":"string","enum":["F","C"]}},"additionalProperties":false,"required":["value","unit"],"capability":"temperatureMeasurement","attribute":"temperature","label":"attribute: temperature.*"},"command":{"name":"setTemperatureValue","label":"command: setTemperatureValue(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"type":"smartTrigger","mute":true}]}"""
-        
+        {"trigger":{"type":"attribute","properties":{"value":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000},"unit":{"type":"string","enum":["F","C"]}},"additionalProperties":false,"required":["value","unit"],"capability":"temperatureMeasurement","attribute":"temperature","label":"attribute: temperature.*"},"command":{"name":"setTemperatureValue","label":"command: setTemperatureValue(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"type":"smartTrigger","mute":true},
+
+    {"trigger":{"type":"attribute","properties":{"value":{"title":"HealthState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"healthCheck","attribute":"healthStatus","label":"attribute: healthStatus.*"},"command":{"name":"setHealthStatusValue","label":"command: setHealthStatusValue(healthStatus*)","type":"command","parameters":[{"name":"healthStatus*","type":"ENUM"}]},"type":"smartTrigger","mute":true}
+    ]}"""
 }
