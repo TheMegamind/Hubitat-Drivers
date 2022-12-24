@@ -16,7 +16,7 @@ public static String version() {return "1.2.0"}
 
 metadata 
 {
-    definition(name: "Replica Temp/Humidity Sensor", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/bthrock/Hubitat/main/hubiThingsReplica/dev")
+    definition(name: "Replica Temp/Humidity Sensor", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Replica-Drivers/main/replicaTempHumiditySensor.groovy")
     {
         capability "Battery"
         capability "Configuration"
