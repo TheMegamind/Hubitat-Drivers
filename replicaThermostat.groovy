@@ -147,7 +147,7 @@ def setThermostatModeValue(value) {
 }
 
 def setThermostatModeAuto() {
-    setWindowThermostatModeValue("auto")
+    setThermostatModeValue("auto")
 }
 
 def setThermostatModeCool() {
