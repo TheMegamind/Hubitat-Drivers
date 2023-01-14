@@ -1,5 +1,5 @@
 /**
-*  Copyright 2022 bthrock
+*  Copyright 2023 David Gutheinz
 *
 *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 *  in compliance with the License. You may obtain a copy of the License at:
@@ -12,40 +12,63 @@
 *
 */
 @SuppressWarnings('unused')
-public static String version() {return "1.2.0"}
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import groovy.transform.CompileStatic
+import groovy.transform.Field
+@Field volatile static Map<String,Long> g_mEventSendTime = [:]
+public static String driverVer() { return "0.1.1" }
 
-metadata 
-{
-    definition(name: "Replica Thermostat", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Replica-Drivers/main/replicaThermostat.groovy")
-    {
-        capability "Actuator"
-        capability "Battery"
-        capability "Configuration"
-        capability "Refresh"
-        capability "Sensor"
-        capability "TemperatureMeasurement"
-        capability "ThermostatCoolingSetpoint"
-        capability "ThermostatHeatingSetpoint"
-        capability "ThermostatFanMode"
-        capability "ThermostatMode"
-        capability "ThermostatOperatingState"
+//	Beta Status:  Tested on Sengled and Kasa Bulbs integrated in SmartThings.
 
-        attribute "supportedThermostatFanModes", "JSON_OBJECT"
-        attribute "supportedThermostatModes", "JSON_OBJECT"  
-        //attribute "thermostatSetpoint", "NUMBER"
-        
-        attribute "healthStatus", "enum", ["offline", "online"]
-    }
-    preferences {   
-    }
+metadata {
+	definition (name: "Replica Color Bulb Mc",
+				namespace: "replica",
+				author: "Dave Gutheinz",
+				importUrl: ""
+			   ) {
+		capability "Light"
+		capability "Switch"
+		capability "Switch Level"
+		capability "Change Level"
+		capability "Color Temperature"
+		//	ST setColorTemp does not support transition time
+		//	Hard code command setColorTemperature.
+		command "setColorTemperature", [[
+			name: "Color Temperature",
+			type: "NUMBER"]]
+		capability "Color Mode"
+		capability "Color Control"
+		capability "Refresh"
+		capability "Actuator"
+		capability "Configuration"
+		
+		attribute "colorChanging", "enum", ["Active", "Inactive"]
+		command "setColorChanging", [[name: "value*", type: "ENUM", description: "Set Color Changing", constraints: ["Active","Inactive"]]]
+		
+		attribute "healthStatus", "enum", ["offline", "online"]
+	}
+	preferences {
+		input ("textEnable", "bool", 
+			   title: "Enable descriptionText logging",
+			   defaultValue: true)
+		input ("logEnable", "bool",
+			   title: "Enable debug logging",
+			   defaultValue: false)
+		input ("transTime", "number",
+			   title: "Default Transition time (seconds)",
+			   defaultValue: 1)
+		input ("ctLow", "number", title: "lowerLimit of Color Temp", defaultValue: 2000)
+		input ("ctHigh", "number", title: "UpperLimit of Color Temp", defaultValue: 9000)
+	}
 }
 
 def installed() {
-	initialize()
+	initialize()	
 }
 
 def updated() {
-	initialize()    
+	initialize()	
 }
 
 def initialize() {
@@ -54,259 +77,267 @@ def initialize() {
 }
 
 def configure() {
-    log.info "${device.displayName} configured default rules"
+    logInfo "configure: configured default rules"
     initialize()
     updateDataValue("rules", getReplicaRules())
-    sendCommand("configure")
+	sendCommand("configure")
 }
 
-// Methods documented here will show up in the Replica Command Configuration. These should be mostly setter in nature. 
-Map getReplicaCommands() {
-    return ([ 
-        "setBatteryValue":[[name:"battery*",type:"NUMBER"]],
-        "setCoolingSetpointValue":[[name:"temperature*",type:"NUMBER"]], 
-        "setHeatingSetpointValue":[[name:"temperature*",type:"NUMBER"]], 
-        "setSupportedThermostatFanModesValue":[[name:"supportedThermostatFanModes*",type:"JSON_OBJECT"]],
-        "setSupportedThermostatModesValue":[[name:"supportedThermostatModes*",type:"JSON_OBJECT"]],
-        "setTemperatureValue":[[name:"temperature*",type:"NUMBER"]], 
-        "setThermostatFanModeValue":[[name:"mode*",type:"ENUM"]], 
-            "setThermostatFanModeAuto":[], "setThermostatFanModeCirculate":[], "setThermostatFanModeOn":[],"setThermostatFanModeFollowSchedule":[],
-        "setThermostatModeValue":[[name:"mode*",type:"ENUM"]],
-            "setThermostatModeAuto":[], "setThermostatModeCool":[], "setThermostatModeEmergencyHeat":[], "setThermostatModeHeat":[], "setThermostatModeOff":[],
-        "setThermostatOperatingStateValue":[[name:"thermostatOperatingState*",type:"ENUM"]], 
-        "setHealthStatusValue":[[name:"healthStatus*",type:"ENUM"]]
-        
-    ])
+void refresh() {
+	sendCommand("refresh")
 }
 
-def setBatteryValue(value) {
-    String descriptionText = "${device.displayName} battery level is $value %"
-    sendEvent(name: "battery", value: value, unit: "%", descriptionText: descriptionText)
+//	Capability Switch
+def on() {
+	sendCommand("on")
+}
+
+def off() {
+	sendCommand("off")
+}
+
+def setSwitchValue(onOff) {
+    sendEvent(name: "switch", value: onOff)
+	logDebug("setSwitchValue: [switch: ${onOff}]")
+}
+
+
+//	Capability SwitchLevel
+def setLevel(level, transTime = transTime) {
+	if (level == null || level < 0) {
+		level = 0
+	} else if (level > 100) {
+		level = 100
+	}
+	if (transTime == null || transTime < 0) {
+		transTime = 0
+	} else if (transTime > 8) {
+		transTime = 8
+	}
+	if (level == 0) {
+		off()
+	} else {
+		sendCommand("setLevel", level, null, [rate:transTime])
+	}
+}
+
+def startLevelChange(direction) {
+	unschedule(levelUp)
+	unschedule(levelDown)
+	if (direction == "up") { levelUp() }
+	else { levelDown() }
+}
+
+def stopLevelChange() {
+	unschedule(levelUp)
+	unschedule(levelDown)
+}
+
+def levelUp() {
+	def curLevel = device.currentValue("level").toInteger()
+	if (curLevel == 100) { return }
+	def newLevel = curLevel + 4
+	if (newLevel > 100) { newLevel = 100 }
+	setLevel(newLevel, 0)
+	runIn(1, levelUp)
+}
+
+def levelDown() {
+	def curLevel = device.currentValue("level").toInteger()
+	if (curLevel == 0 || device.currentValue("switch") == "off") { return }
+	def newLevel = curLevel - 4
+	if (newLevel < 0) { off() }
+	else {
+		setLevel(newLevel, 0)
+		runIn(1, levelDown)
+	}
+}
+
+def setLevelValue(level) {
+	sendEvent(name: "level", value: level, unit: "%")
+	//	Update attribute color if in color mode
+	if (device.currentValue("colorMode") == "COLOR") {
+		runIn(5, setColorValue)
+	}
+	logDebug("setLevelValue: [level: ${level}%]")
+}
+
+
+//	Capability Color Temperature
+def setColorTemperature(colorTemp) {
+	if (colorTemp > ctHigh) { colorTemp = ctHigh}
+	else if (colorTemp < ctLow) { colorTemp = ctLow}
+	sendEvent(name: "colorMode", value: "CT")
+	sendCommand("setColorTemperature", colorTemp)
+}
+
+def setColorTemperatureValue(colorTemp) {
+	sendEvent(name: "colorTemperature", value: colorTemp, unit: "°K")
+	if (device.currentValue("colorMode") == "CT") {
+		def colorName = convertTemperatureToGenericColorName(colorTemp)
+		sendEvent(name: "colorName", value: colorName)
+		logDebug("setColorTemperatureValue: [colorTemperature: ${colorTemp}°K, colorName: ${colorName}]")
+	}
+}
+
+
+//	Capability Color Control
+def setHue(hue) { 
+	hue = (hue + 0.5).toInteger()
+	if (hue < 0) { hue = 0 }
+	else if (hue > 100) { hue = 100 }
+	setColor([hue: hue])
+}
+
+def setSaturation(saturation) {
+	saturation = (saturation +0.5).toInteger()
+	if (saturation < 0) { saturation = 0 }
+	else if (saturation > 100) { saturation = 100 }
+	setColor([saturation: saturation])
+}
+
+def setColor(Map color) {
+	//	Design note.  SmartThings device do not set level via the setColor command
+	//	Added setLevel command if the color command has defined a new level.
+	if (color == null) {
+		LogWarn("setColor: Color map is null. Command not executed.")
+	} else {
+		def level = device.currentValue("level")
+		if (color.level) { level = color.level }
+		//	ST setColor does not always implement "level".  For Hubitat
+		//	compatibility reasons, do a separate setLevel (rate = 0).
+		setLevel(level, 0)
+		pauseExecution(200)
+		def hue = device.currentValue("hue")
+		if (color.hue) { hue = color.hue }
+		def saturation = device.currentValue("saturation")
+		if (color.saturation) { saturation = color.saturation }
+		def newColor = """{"hue":${hue}, "saturation":${saturation}, "level":${level}}"""
+		sendEvent(name: "colorMode", value: "COLOR")
+		sendCommand("setColor", newColor)
+		logDebug("setColor: [color: ${color}, level: ${level}, setColor: ${newColor}]")
+	}
+}
+
+def setHueValue(hue) {
+	hue = (hue + 0.5).toInteger()
+	sendEvent(name: "hue", value: hue, unit: "%")
+	runIn(3, setColorValue)
+	logDebug("setHueValue: [hue: ${hue}%]")
+}
+
+def setSaturationValue(saturation) {
+	saturation = (saturation + 0.5).toInteger()
+	sendEvent(name: "saturation", value: saturation, unit: "%")
+	runIn(3, setColorValue)
+	logInfo("setSaturationValue: [saturation: ${saturation}%]")
+}
+
+def setColorValue() {
+	//	ST always returns null of color.  Recreate using
+	//	Hubitat attributes hue, saturation, level.
+	Map color = [hue: device.currentValue("hue"),
+				 saturation: device.currentValue("saturation"),
+				 level: device.currentValue("level")
+				 ]
+	sendEvent(name: "color", value: color)
+	if (device.currentValue("colorMode") == "COLOR") {
+		def colorName = convertHueToGenericColorName(color.hue)
+		sendEvent(name: "colorName", value: colorName)
+		logDebug("setColorValue: [color: ${color}, colorName: ${colorName}]")
+	}
+}
+
+// Adding Custom Commands for Mc Drive
+def setColorChangingValue(value) {
+    String descriptionText = "${device.displayName} Color Changing is $value"
+    sendEvent(name: "colorChanging", value: value, descriptionText: descriptionText)
     log.info descriptionText
 }
 
-def setCoolingSetpointValue(value) {
-    String unit = "°${getTemperatureScale()}"
-    String descriptionText = "${device.displayName} coolingSetPoint is $value $unit"
-    sendEvent(name: "coolingSetpoint", value: value, descriptionText: descriptionText)
-    log.info descriptionText
+def setColorChanging(colorChanging) {
+    sendCommand("setColorChanging",colorChanging)
 }
-
-def setHeatingSetpointValue(value) {
-    String unit = "°${getTemperatureScale()}"
-    String descriptionText = "${device.displayName} heatingSetpoint is $value $unit"
-    sendEvent(name: "heatingSetpoint", value: value, descriptionText: descriptionText)
-    log.info descriptionText
-}
-
-def setSupportedThermostatFanModesValue(value) {
-    String descriptionText = "${device.displayName} supported thermostat fan modes are $value"
-    sendEvent(name: "supportedThermostatFanModes", value: value, descriptionText: descriptionText)
-    log.info descriptionText
-}
-
-def setSupportedThermostatModesValue(value) {
-    String descriptionText = "${device.displayName} supported thermostat modes are $value"
-    sendEvent(name: "supportedThermostatModes", value: value, descriptionText: descriptionText)
-    log.info descriptionText
-}
-
-def setTemperatureValue(value) {
-    String unit = "°${getTemperatureScale()}"
-    String descriptionText = "${device.displayName} temperature is $value $unit"
-    sendEvent(name: "temperature", value:value, unit: unit, descriptionText: descriptionText)
-    log.info descriptionText
-}
-
-def setThermostatFanModeValue(value) {
-	String descriptionText = "${device.displayName} thermostatFanMode is $value"
-    sendEvent(name: "thermostatFanMode", value: value, descriptionText: descriptionText)
-    log.info descriptionText
-}
-
-def setThermostatFanModeAuto() {
-    setThermostatFanModeValue ("auto")
-}
-
-def setThermostatFanModeCirculate() {
-    setThermostatFanModeValue ("circulate")
-}
-
-def setThermostatFanModeOn() {
-    setThermostatFanModeValue ("on")
-}
-
-def setThermostatFanModeFollowSchedule() {
-    setThermostatFanModeValue ("followSchedule")
-}
-
-def setThermostatModeValue(value) {
-    String descriptionText = "${device.displayName} thermostatMode is $value"
-    sendEvent(name: "thermostatMode", value: value, descriptionText: descriptionText)
-    log.info descriptionText
-}
-
-def setThermostatModeAuto() {
-    setThermostatModeValue("auto")
-}
-
-def setThermostatModeCool() {
-    setThermostatModeValue("cool")
-}
-
-def setThermostatModeEmergencyHeat() {
-    setThermostatModeValue("emergencyHeat")
-}
-
-def setThermostatModeHeat() {
-    setThermostatModeValue("heat")
-}
-
-def setThermostatModeOff() {
-    setThermostatModeValue("off")
-}
-
-def setThermostatOperatingStateValue(value) {
-    String descriptionText = "${device.displayName} thermostatOperatingState is $value"
-    sendEvent(name: "thermostatOperatingState", value: value, descriptionText: descriptionText)
-    log.info descriptionText
-}
+// End Custom Commands
 
 def setHealthStatusValue(value) {    
     sendEvent(name: "healthStatus", value: value, descriptionText: "${device.displayName} healthStatus set to $value")
-}
-
-// Methods documented here will show up in the Replica Trigger Configuration. These should be all of the native capability commands
-Map getReplicaTriggers() {
-    return ([
-        "setCoolingSetpoint":[[name:"temperature*",type:"NUMBER"]], 
-        "setHeatingSetpoint":[[name:"temperature*",type:"NUMBER"]],   
-        "setTemperature":[[name:"temperature*",type:"NUMBER"]], 
-        "setThermostatFanMode":[[name:"thermostatFanMode*",type:"ENUM"]], 
-             "fanAuto":[], "fanCirculate":[], "fanOn":[],"followSchedule":[],
-        "setThermostatMode":[[name:"thermostatMode*",type:"ENUM"]],
-            "auto":[], "cool":[], "emergencyHeat":[], "heat":[], "off":[],
-        "setThermostatOperatingState":[[name:"thermostatOperatingState*",type:"ENUM"]], 
-        "refresh":[]
-    ])
 }
 
 private def sendCommand(String name, def value=null, String unit=null, data=[:]) {
     parent?.deviceTriggerHandler(device, [name:name, value:value, unit:unit, data:data, now:now])
 }
 
-def setCoolingSetpoint(value) {
-    sendCommand("setCoolingSetpoint", value)
+
+Map getReplicaCommands() {
+	Map replicaCommands = [ 
+		setSwitchValue:[[name:"switch*",type:"ENUM"]], 
+		setLevelValue:[[name:"level*",type:"NUMBER"]] ,
+		setColorTemperatureValue:[[name: "colorTemperature", type: "NUMBER"]],
+		setHueValue:[[name: "hue", type: "NUMBER"]],
+		setSaturationValue:[[name: "saturation", type: "NUMBER"]],
+		setColorChangingValue:[[name:"colorChanging*",type:"ENUM"]],
+		setHealthStatusValue:[[name:"healthStatus*",type:"ENUM"]]]
+	return replicaCommands
 }
 
-def setHeatingSetpoint(value) {
-    sendCommand("setHeatingSetpoint",value)
+Map getReplicaTriggers() {
+	def replicaTriggers = [
+		off:[],
+		on:[],
+		setLevel: [
+			[name:"level*", type: "NUMBER"],
+			[name:"rate", type:"NUMBER",data:"rate"]],
+		setColorTemperature: [
+			[name:"colorTemperature", type: "NUMBER"]],
+		setColor: [
+			[name: "color", type: "OBJECT"]],
+		setColorChanging: [
+			[name:"colorChanging*",type:"ENUM"]],
+		refresh:[]]
+	return replicaTriggers
 }
-
-def setTemperature(value) {
-    sendCommand("setTemperatureValue",value)
-}
-
-def setThermostatFanMode(value) {
-    sendCommand("setThermostatFanMode",value)
-}
-
-def fanAuto() {
-    sendCommand("fanAuto")
-}
-
-def fanCirculate() {
-    sendCommand("fanCirculate")
-}
-
-def fanOn() {
-    sendCommand("fanOn")
-}
-
-def followSchedule() {
-    sendCommand("followSchedule")
-}
-
-def setThermostatMode(value) {
-    sendCommand("setThermostatMode",value)
-}
-
-def auto() {
-    sendCommand("auto")
-}
-
-def cool() {
-    sendCommand("cool")
-}
-
-def emergencyheat() {
-    sendCommand("emergencyHeat")
-}
-
-def heat() {
-    sendCommand("heat")
-}
-
-def off() {
-    sendCommand("off")
-}
-
-def setThermostatOperatingState(value) {
-    sendCommand("setThermostatOperatingStateValue",value)
-}
-
-void refresh() {
-    sendCommand("refresh")
-}
-
 
 String getReplicaRules() {
-    return """{"version":1,"components":[
-        
-        {"trigger":{"name":"auto","label":"command: auto()","type":"command"},"command":{"name":"auto","type":"command","capability":"thermostatMode","label":"command: auto()"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"cool","label":"command: cool()","type":"command"},"command":{"name":"cool","type":"command","capability":"thermostatMode","label":"command: cool()"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"emergencyHeat","label":"command: emergencyHeat()","type":"command"},"command":{"name":"emergencyHeat","type":"command","capability":"thermostatMode","label":"command: emergencyHeat()"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"fanAuto","label":"command: fanAuto()","type":"command"},"command":{"name":"fanAuto","type":"command","capability":"thermostatFanMode","label":"command: fanAuto()"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"fanCirculate","label":"command: fanCirculate()","type":"command"},"command":{"name":"fanCirculate","type":"command","capability":"thermostatFanMode","label":"command: fanCirculate()"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"fanOn","label":"command: fanOn()","type":"command"},"command":{"name":"fanOn","type":"command","capability":"thermostatFanMode","label":"command: fanOn()"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"heat","label":"command: heat()","type":"command"},"command":{"name":"heat","type":"command","capability":"thermostatMode","label":"command: heat()"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"off","label":"command: off()","type":"command"},"command":{"name":"off","type":"command","capability":"thermostatMode","label":"command: off()"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"setCoolingSetpoint","label":"command: setCoolingSetpoint(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"command":{"name":"setCoolingSetpoint","arguments":[{"name":"setpoint","optional":false,"schema":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000}}],"type":"command","capability":"thermostatCoolingSetpoint","label":"command: setCoolingSetpoint(setpoint*)"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"setHeatingSetpoint","label":"command: setHeatingSetpoint(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"command":{"name":"setHeatingSetpoint","arguments":[{"name":"setpoint","optional":false,"schema":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000}}],"type":"command","capability":"thermostatHeatingSetpoint","label":"command: setHeatingSetpoint(setpoint*)"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"setThermostatFanMode","label":"command: setThermostatFanMode(thermostatFanMode*)","type":"command","parameters":[{"name":"thermostatFanMode*","type":"ENUM"}]},"command":{"name":"setThermostatFanMode","arguments":[{"name":"mode","optional":false,"schema":{"title":"ThermostatFanMode","type":"string","enum":["auto","circulate","followschedule","on"]}}],"type":"command","capability":"thermostatFanMode","label":"command: setThermostatFanMode(mode*)"},"type":"hubitatTrigger"},
-        
-        {"trigger":{"name":"setThermostatMode","label":"command: setThermostatMode(thermostatMode*)","type":"command","parameters":[{"name":"thermostatMode*","type":"ENUM"}]},"command":{"name":"setThermostatMode","arguments":[{"name":"mode","optional":false,"schema":{"title":"ThermostatMode","type":"string","enum":["asleep","auto","autowitheco","autowithreset","autochangeover","autochangeoveractive","autocool","autoheat","auxheatonly","auxiliaryemergencyheat","away","cool","custom","dayoff","dryair","eco","emergency heat","emergencyheat","emergencyheatactive","energysavecool","energysaveheat","fanonly","frostguard","furnace","heat","heatingoff","home","in","manual","moistair","off","out","resume","rush hour","rushhour","schedule","southernaway"]}}],"type":"command","capability":"thermostatMode","label":"command: setThermostatMode(mode*)"},"type":"hubitatTrigger"},        
-        
-        {"trigger":{"title":"IntegerPercent","type":"attribute","properties":{"value":{"type":"integer","minimum":0,"maximum":100},"unit":{"type":"string","enum":["%"],"default":"%"}},"additionalProperties":false,"required":["value"],"capability":"battery","attribute":"battery","label":"attribute: battery.*"},"command":{"name":"setBatteryValue","label":"command: setBatteryValue(battery*)","type":"command","parameters":[{"name":"battery*","type":"NUMBER"}]},"type":"smartTrigger"},
-        
-        {"trigger":{"title":"Temperature","type":"attribute","properties":{"value":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000},"unit":{"type":"string","enum":["F","C"]}},"additionalProperties":false,"required":["value","unit"],"capability":"thermostatCoolingSetpoint","attribute":"coolingSetpoint","label":"attribute: coolingSetpoint.*"},"command":{"name":"setCoolingSetpointValue","label":"command: setCoolingSetpointValue(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"type":"smartTrigger"},
-        
-        {"trigger":{"type":"attribute","properties":{"value":{"title":"HealthState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"healthCheck","attribute":"healthStatus","label":"attribute: healthStatus.*"},"command":{"name":"setHealthStatusValue","label":"command: setHealthStatusValue(healthStatus*)","type":"command","parameters":[{"name":"healthStatus*","type":"ENUM"}]},"type":"smartTrigger"},
-        
-        {"trigger":{"title":"Temperature","type":"attribute","properties":{"value":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000},"unit":{"type":"string","enum":["F","C"]}},"additionalProperties":false,"required":["value","unit"],"capability":"thermostatHeatingSetpoint","attribute":"heatingSetpoint","label":"attribute: heatingSetpoint.*"},"command":{"name":"setHeatingSetpointValue","label":"command: setHeatingSetpointValue(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"type":"smartTrigger"},
-
-        {"trigger":{"type":"attribute","properties":{"value":{"type":"array","items":{"title":"ThermostatFanMode","type":"string","enum":["auto","circulate","followschedule","on"]}}},"additionalProperties":false,"required":[],"capability":"thermostatFanMode","attribute":"supportedThermostatFanModes","label":"attribute: supportedThermostatFanModes.*"},"command":{"name":"setSupportedThermostatFanModesValue","label":"command: setSupportedThermostatFanModesValue(supportedThermostatFanModes*)","type":"command","parameters":[{"name":"supportedThermostatFanModes*","type":"JSON_OBJECT"}]},"type":"smartTrigger"},
-
-        {"trigger":{"type":"attribute","properties":{"value":{"type":"array","items":{"title":"ThermostatMode","type":"string","enum":["asleep","auto","autowitheco","autowithreset","autochangeover","autochangeoveractive","autocool","autoheat","auxheatonly","auxiliaryemergencyheat","away","cool","custom","dayoff","dryair","eco","emergency heat","emergencyheat","emergencyheatactive","energysavecool","energysaveheat","fanonly","frostguard","furnace","heat","heatingoff","home","in","manual","moistair","off","out","resume","rush hour","rushhour","schedule","southernaway"]}}},"additionalProperties":false,"required":[],"capability":"thermostatMode","attribute":"supportedThermostatModes","label":"attribute: supportedThermostatModes.*"},"command":{"name":"setSupportedThermostatModesValue","label":"command: setSupportedThermostatModesValue(supportedThermostatModes*)","type":"command","parameters":[{"name":"supportedThermostatModes*","type":"JSON_OBJECT"}]},"type":"smartTrigger"},
-        
-        {"trigger":{"type":"attribute","properties":{"value":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000},"unit":{"type":"string","enum":["F","C"]}},"additionalProperties":false,"required":["value","unit"],"capability":"temperatureMeasurement","attribute":"temperature","label":"attribute: temperature.*"},"command":{"name":"setTemperatureValue","label":"command: setTemperatureValue(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"type":"smartTrigger"},
-        
-        {"trigger":{"type":"attribute","properties":{"value":{"title":"ThermostatFanMode","type":"string"},"data":{"type":"object","additionalProperties":false,"required":[],"properties":{"supportedThermostatFanModes":{"type":"array","items":{"title":"ThermostatFanMode","type":"string","enum":["auto","circulate","followschedule","on"]}}}}},"additionalProperties":false,"required":["value"],"capability":"thermostatFanMode","attribute":"thermostatFanMode","label":"attribute: thermostatFanMode.*"},"command":{"name":"setThermostatFanModeValue","label":"command: setThermostatFanModeValue(mode*)","type":"command","parameters":[{"name":"thermostatFanMode*","type":"ENUM"}]},"type":"smartTrigger"},
-        
-        {"trigger":{"type":"attribute","properties":{"value":{"title":"ThermostatMode","type":"string"},"data":{"type":"object","additionalProperties":false,"required":[],"properties":{"supportedThermostatModes":{"type":"array","items":{"title":"ThermostatMode","type":"string","enum":["asleep","auto","autowitheco","autowithreset","autochangeover","autochangeoveractive","autocool","autoheat","auxheatonly","auxiliaryemergencyheat","away","cool","custom","dayoff","dryair","eco","emergency heat","emergencyheat","emergencyheatactive","energysavecool","energysaveheat","fanonly","frostguard","furnace","heat","heatingoff","home","in","manual","moistair","off","out","resume","rush hour","rushhour","schedule","southernaway"]}}}}},"additionalProperties":false,"required":["value"],"capability":"thermostatMode","attribute":"thermostatMode","label":"attribute: thermostatMode.*"},"command":{"name":"setThermostatModeValue","label":"command: setThermostatModeValue(mode*)","type":"command","parameters":[{"name":"thermostatMode*","type":"ENUM"}]},"type":"smartTrigger"},
-        
-        {"trigger":{"type":"attribute","properties":{"value":{"title":"ThermostatOperatingState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"thermostatOperatingState","attribute":"thermostatOperatingState","label":"attribute: thermostatOperatingState.*"},"command":{"name":"setThermostatOperatingStateValue","label":"command: setThermostatOperatingStateValue(thermostatOperatingState*)","type":"command","parameters":[{"name":"thermostatOperatingState*","type":"ENUM"}]},"type":"smartTrigger"}
-        
-        
-    ]}"""
+	return """{"version":1,"components":[{"trigger":{"name":"off","label":"command: off()","type":"command"},"command":{"name":"off","type":"command","capability":"switch","label":"command: off()"},"type":"hubitatTrigger"},{"trigger":{"name":"on","label":"command: on()","type":"command"},"command":{"name":"on","type":"command","capability":"switch","label":"command: on()"},"type":"hubitatTrigger"},{"trigger":{"name":"refresh","label":"command: refresh()","type":"command"},"command":{"name":"refresh","type":"command","capability":"refresh","label":"command: refresh()"},"type":"hubitatTrigger"},{"trigger":{"name":"setColor","label":"command: setColor(color)","type":"command","parameters":[{"name":"color","type":"object"}]},"command":{"name":"setColor","arguments":[{"name":"color","optional":false,"schema":{"title":"COLOR_MAP","type":"object","additionalProperties":false,"properties":{"hue":{"type":"number"},"saturation":{"type":"number"},"hex":{"type":"string","maxLength":7},"level":{"type":"integer"},"switch":{"type":"string","maxLength":3}}}}],"type":"command","capability":"colorControl","label":"command: setColor(color*)"},"type":"hubitatTrigger"},{"trigger":{"name":"setColorTemperature","label":"command: setColorTemperature(colorTemperature)","type":"command","parameters":[{"name":"colorTemperature","type":"NUMBER"}]},"command":{"name":"setColorTemperature","arguments":[{"name":"temperature","optional":false,"schema":{"type":"integer","minimum":1,"maximum":30000}}],"type":"command","capability":"colorTemperature","label":"command: setColorTemperature(temperature*)"},"type":"hubitatTrigger"},{"trigger":{"name":"setLevel","label":"command: setLevel(level*, rate)","type":"command","parameters":[{"name":"level*","type":"NUMBER"},{"name":"rate","type":"NUMBER","data":"rate"}]},"command":{"name":"setLevel","arguments":[{"name":"level","optional":false,"schema":{"type":"integer","minimum":0,"maximum":100}},{"name":"rate","optional":true,"schema":{"title":"PositiveInteger","type":"integer","minimum":0}}],"type":"command","capability":"switchLevel","label":"command: setLevel(level*, rate)"},"type":"hubitatTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"type":"integer","minimum":1,"maximum":30000},"unit":{"type":"string","enum":["K"],"default":"K"}},"additionalProperties":false,"required":["value"],"capability":"colorTemperature","attribute":"colorTemperature","label":"attribute: colorTemperature.*"},"command":{"name":"setColorTemperatureValue","label":"command: setColorTemperatureValue(colorTemperature)","type":"command","parameters":[{"name":"colorTemperature","type":"NUMBER"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"PositiveNumber","type":"number","minimum":0}},"additionalProperties":false,"required":[],"capability":"colorControl","attribute":"hue","label":"attribute: hue.*"},"command":{"name":"setHueValue","label":"command: setHueValue(hue)","type":"command","parameters":[{"name":"hue","type":"NUMBER"}]},"type":"smartTrigger"},{"trigger":{"title":"IntegerPercent","type":"attribute","properties":{"value":{"type":"integer","minimum":0,"maximum":100},"unit":{"type":"string","enum":["%"],"default":"%"}},"additionalProperties":false,"required":["value"],"capability":"switchLevel","attribute":"level","label":"attribute: level.*"},"command":{"name":"setLevelValue","label":"command: setLevelValue(level*)","type":"command","parameters":[{"name":"level*","type":"NUMBER"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"PositiveNumber","type":"number","minimum":0}},"additionalProperties":false,"required":[],"capability":"colorControl","attribute":"saturation","label":"attribute: saturation.*"},"command":{"name":"setSaturationValue","label":"command: setSaturationValue(saturation)","type":"command","parameters":[{"name":"saturation","type":"NUMBER"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"SwitchState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"switch","attribute":"switch","label":"attribute: switch.*"},"command":{"name":"setSwitchValue","label":"command: setSwitchValue(switch*)","type":"command","parameters":[{"name":"switch*","type":"ENUM"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"HealthState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"healthCheck","attribute":"healthStatus","label":"attribute: healthStatus.*"},"command":{"name":"setHealthStatusValue","label":"command: setHealthStatusValue(healthStatus*)","type":"command","parameters":[{"name":"healthStatus*","type":"ENUM"}]},"type":"smartTrigger"},{"trigger":{"name":"setColorChanging","label":"command: setColorChanging(colorChanging*)","type":"command","parameters":[{"name":"colorChanging*","type":"ENUM"}]},"command":{"name":"setColorChanging","arguments":[{"name":"value","optional":false,"schema":{"type":"string","maxLength":36}}],"type":"command","capability":"legendabsolute60149.colorChanging","label":"command: setColorChanging(value*)"},"type":"hubitatTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"type":"string","maxLength":36}},"additionalProperties":false,"required":["value"],"capability":"legendabsolute60149.colorChanging","attribute":"colorChanging","label":"attribute: colorChanging.*"},"command":{"name":"setColorChangingValue","label":"command: setColorChangingValue(colorChanging*)","type":"command","parameters":[{"name":"colorChanging*","type":"ENUM"}]},"type":"smartTrigger"}]}"""
 }
+
+
+def listAttributes(trace = false) {
+	def attrs = device.getSupportedAttributes()
+	def attrList = [:]
+	attrs.each {
+		def val = device.currentValue("${it}")
+		attrList << ["${it}": val]
+	}
+	if (trace == true) {
+		logInfo("Attributes: ${attrList}")
+	} else {
+		logDebug("Attributes: ${attrList}")
+	}
+}
+
+def logTrace(msg){
+	log.trace "${device.displayName}-${driverVer()}: ${msg}"
+}
+
+def logInfo(msg) { 
+	if (textEnable) {
+		log.info "${device.displayName}-${driverVer()}: ${msg}"
+	}
+}
+
+def debugLogOff() {
+	if (logEnable) {
+		device.updateSetting("logEnable", [type:"bool", value: false])
+	}
+	logInfo("debugLogOff")
+}
+
+def logDebug(msg) {
+	if (logEnable) {
+		log.debug "${device.displayName}-${driverVer()}: ${msg}"
+	}
+}
+
+def logWarn(msg) { log.warn "${device.displayName}-${driverVer()}: ${msg}" }
