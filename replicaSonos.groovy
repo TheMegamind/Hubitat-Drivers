@@ -27,6 +27,7 @@ metadata
 	attribute "audioTrackData", "JSON_OBJECT"    //capability audioTrackData in SmartThings 
 	attribute "presets", "JSON_OBJECT"           //capability mediaPreset in SmartThings 
 	attribute "elapsedTime", "number"    	     //capability audioTrackData in SmartThings - Not Currently Reported
+	attribute "status", "enum"    		     //capability mediaPlayback in SmartThings 
 	attribute "totalTime", "number"              //capability audioTrackData in SmartThings - Not Currently Reported
 		
         attribute "healthStatus", "enum", ["offline", "online"]
