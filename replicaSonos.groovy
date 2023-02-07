@@ -101,11 +101,9 @@ def setMuteValue(value) {
     logInfo descriptionText
 }
 
-def setPresetsValue(presets) {
+def setPresetsValue(value) {
     String descriptionText = "${device.displayName} is $value"
-    //	
-    //sendEvent(name: "presets", value: value, descriptionText: descriptionText)
-    state.presets = presets
+    sendEvent(name: "presets", value: value, descriptionText: descriptionText)
     logInfo descriptionText
 }
 
