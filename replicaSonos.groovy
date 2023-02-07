@@ -21,7 +21,7 @@ metadata
         capability "Actuator"
         capability "Configuration"
 	capability "AudioVolume"
-        //capability "MusicPlayer"                  //Adds Unsupported Commands to Device Presentation
+        //capability "MusicPlayer"                   //Exposes Unsupported Commands in Device Presentation
         capability "Refresh"
         
 	attribute "audioTrackData", "JSON_OBJECT"    //capability audioTrackData in SmartThings 
