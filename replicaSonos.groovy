@@ -1,5 +1,5 @@
 /**
-*  Copyright 2023 bthrock
+*  Copyright 2022 bthrock
 *
 *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 *  in compliance with the License. You may obtain a copy of the License at:
@@ -10,71 +10,34 @@
 *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 *  for the specific language governing permissions and limitations under the License.
 *
-***** Thanks to @bloodtick_jones, developer of HubiThings Replica, whose work provided the foundation. All mistakes are mine. *****
 */
 @SuppressWarnings('unused')
-public static String version() {return "1.3.0"}
-import groovy.json.JsonBuilder
-import groovy.json.JsonOutput
-import java.text.SimpleDateFormat
-
-Random rnd = new Random()
+public static String version() {return "1.3.2"}
 
 metadata 
 {
-    definition(name: "Replica Sonos", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Replica-Drivers/main/replicaSonos.groovy")
+    definition(name: "Replica Thermostat", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Replica-Drivers/main/replicaThermostat.groovy")
     {
-	capability "Actuator"
-	capability "AudioNotification"
-	capability "AudioVolume"
-	capability "Configuration"
-	capability "MusicPlayer"			
-	capability "Refresh"
+        capability "Actuator"
+        capability "Battery"
+        capability "Configuration"
+        capability "Refresh"
+        capability "Sensor"
+        capability "TemperatureMeasurement"
+        capability "ThermostatCoolingSetpoint"
+        capability "ThermostatHeatingSetpoint"
+        capability "ThermostatFanMode"
+        capability "ThermostatMode"
+        capability "ThermostatOperatingState"
 
-	//capability audioTrackData in SmartThings 
-	//attribute "audioTrackData", "JSON_OBJECT"         // use native 'trackData' in Hubitat 
-	attribute "elapsedTime", "number"    	    	    // Omitted from Rules as elapsedTime is reporting null values
-	attribute "totalTime", "number"             	    // Omitted from Rules as totalTime is reporting null values
-	attribute "artist", "string"
-	attribute "album", "string"
-	attribute "title", "string"
-	attribute "albumArtUrl", "string"
-
-	//capability mediaGroup in SmartThings
-	attribute "groupMute", "enum"	             	
-	attribute "groupPrimaryDeviceId", "string"   	
-	attribute "groupId", "string"   		    
-	attribute "groupVolume", "number"   	     	
-	attribute "groupRole", "enum"  
-	command "setGroupVolume", [[name:"groupVolume*",type:"NUMBER"]]
-	command "groupVolumeUp"
-	command "groupVolumeDown"
-	command "setGroupMute", [[name: "state*", type: "ENUM", description: "Set Group Mute", constraints: ["muted","unmuted"]]]
-	command "muteGroup"
-	command "unmuteGroup"
-    
-
-	//capability mediaPlayback in SmartThings
-	//attribute "playbackStatus", "enum"               	// Use native 'status' in Hubitat
-	//attribute "supportedPlaybackCommands","enum"		// Omitted here and from Rules; not needed by Hubitat
-	command "playFavorite", [[name: "favoriteId", type: "STRING", description: "Favorite Id Number"],[name: "favoriteName", type: "STRING", description: "Favorite Name"]]
-
-	//capability mediaPreset in SmartThings
-	attribute "favorites", "string"                		// json String; "string" is correct here
-	attribute "lastFavoriteRequest", "string"		// json String; "string" is correct here
-	//attribute "presets", "JSON_OBJECT"                	// "Presets" in ST Driver; "Favorites" in Sonos UI; use the latter instead
-	//attribute "supportedTrackControlCommands","enum"	// Omitted here and from Rules; not needed by Hubitat
-	
-	//workaround for native mediaPlayer 'playTrack' command, which does not have the volumelevel argument
-	command "playTrack", [[name: "trackuri*", type: "STRING", description: "Play the selected track"],[name: "volumelevel", type: "NUMBER", description: "Volume (0-100)%"]]
-
-	attribute "healthStatus", "enum", ["offline", "online"]
-
+        attribute "supportedThermostatFanModes","ENUM"
+        attribute "supportedThermostatModes","ENUM"
+        //attribute "thermostatSetpoint", "NUMBER"
+        
+        attribute "healthStatus", "enum", ["offline", "online"]
     }
     preferences {
         input(name:"deviceInfoDisable", type: "bool", title: "Disable Info logging:", defaultValue: false)
-        input(name:"favoritesAsAttribute", type: "bool", title: "Include Favorites in Attributes:", defaultValue: false)
-        input(name:"partialMatches", type: "bool", title: "Allow Partial Matches for Favorite Name:", defaultValue: false)
     }
 }
 
@@ -92,7 +55,7 @@ def initialize() {
 }
 
 def configure() {
-    logInfo "${device.displayName} configured default rules"
+    log.info "${device.displayName} configured default rules"
     initialize()
     updateDataValue("rules", getReplicaRules())
     sendCommand("configure")
@@ -101,145 +64,114 @@ def configure() {
 // Methods documented here will show up in the Replica Command Configuration. These should be mostly setter in nature. 
 Map getReplicaCommands() {
     return ([ 
-	    	"setTrackDataValue":[[name:"trackData*",type:"JSON_OBJECT"]],
-		"setElapsedTimeValue":[[name:"elapsedTime*",type:"NUMBER"]],
-		"setTotalTimeValue":[[name:"totalTime*",type:"NUMBER"]],
-
-		"setGroupMuteValue":[[name:"groupMute*",type:"ENUM"]],
-		"setGroupPrimaryDeviceIdValue":[[name:"groupPrimaryDeviceId*",type:"STRING"]],
-		"setGroupIdValue":[[name:"groupId*",type:"STRING"]],
-		"setGroupVolumeValue":[[name:"groupVolume*",type:"NUMBER"]],
-		"setGroupRoleValue":[[name:"groupRole*",type:"ENUM"]],
-
-		"setMuteValue":[[name:"mute*",type:"ENUM"]],
-		"setStatusValue":[[name:"Status*",type:"ENUM"]],
-		"setFavoritesValue":[[name:"favorites*",type:"JSON_OBJECT"]],
-		"setVolumeValue":[[name:"volume*",type:"NUMBER"]],
-		"setSupportedPlaybackCommandsValue":[[name:"supportedPlaybackCommands*",type:"ENUM"]],
-		"setSupportedTrackControlCommandsValue":[[name:"supportedTrackControlCommands*",type:"ENUM"]],
-
-		"setHealthStatusValue":[[name:"healthStatus*",type:"ENUM"]]
-	    ])
+      "setBatteryValue":[[name:"battery*",type:"NUMBER"]],
+      "setCoolingSetpointValue":[[name:"temperature*",type:"NUMBER"]], 
+      "setHeatingSetpointValue":[[name:"temperature*",type:"NUMBER"]], 
+      "setSupportedThermostatFanModesValue":[[name:"supportedThermostatFanModes*",type:"ENUM"]],
+      "setSupportedThermostatModesValue":[[name:"supportedThermostatModes*",type:"ENUM"]],
+      "setTemperatureValue":[[name:"temperature*",type:"NUMBER"]], 
+      "setThermostatFanModeValue":[[name:"mode*",type:"ENUM"]], 
+      "setThermostatFanModeAuto":[], "setThermostatFanModeCirculate":[], "setThermostatFanModeOn":[],"setThermostatFanModeFollowSchedule":[],
+      "setThermostatModeValue":[[name:"mode*",type:"ENUM"]],
+      "setThermostatModeAuto":[], "setThermostatModeCool":[], "setThermostatModeEmergencyHeat":[], "setThermostatModeHeat":[], "setThermostatModeOff":[],
+      "setThermostatOperatingStateValue":[[name:"thermostatOperatingState*",type:"ENUM"]], 
+      "setHealthStatusValue":[[name:"healthStatus*",type:"ENUM"]]
+    ])
 }
 
-//capability audioTrackData in SmartThings 
-def setTrackDataValue(event) {   
-    trackData = new JsonBuilder(event.value).toPrettyString()
-    String descriptionText = "${device.displayName}'s trackData is $trackData"
-    sendEvent(name: "trackData", value: trackData, descriptionText: descriptionText)
-    logInfo descriptionText
-    trackDescription = "${event.value.title} by ${event.value.artist}"
-    sendEvent(name: "trackDescription", value: trackDescription)
+def setBatteryValue(value) {
+    String descriptionText = "${device.displayName} battery level is $value %"
+    sendEvent(name: "battery", value: value, unit: "%", descriptionText: descriptionText)
+    log.info descriptionText
 }
 
-//capability audioTrackData in SmartThings 
-//No rules defined as elapsedTime is reporting null values
-def setElapsedTimeValue(value) {
-    String descriptionText = "${device.displayName} is $value"
-    sendEvent(name: "elapsedTime", value: value, descriptionText: descriptionText)
-    logInfo descriptionText
+def setCoolingSetpointValue(value) {
+    String unit = "°${getTemperatureScale()}"
+    String descriptionText = "${device.displayName} coolingSetPoint is $value $unit"
+    sendEvent(name: "coolingSetpoint", value: value, descriptionText: descriptionText)
+    log.info descriptionText
 }
 
-//capability audioTrackData in SmartThings 
-//No rules defined as totalTime is reporting null values
-def setTotalTimeValue(value) {
-    String descriptionText = "${device.displayName} is $value"
-    sendEvent(name: "totalTime", value: value, descriptionText: descriptionText)
-    logInfo descriptionText
+def setHeatingSetpointValue(value) {
+    String unit = "°${getTemperatureScale()}"
+    String descriptionText = "${device.displayName} heatingSetpoint is $value $unit"
+    sendEvent(name: "heatingSetpoint", value: value, descriptionText: descriptionText)
+    log.info descriptionText
 }
 
-//capability mediaGroup in SmartThings
-def setGroupMuteValue(value) {
-    String descriptionText = "${device.displayName} is $value"
-    sendEvent(name: "groupMute", value: value, descriptionText: descriptionText)
-    logInfo descriptionText
+def setSupportedThermostatFanModesValue(value) {
+    String descriptionText = "${device.displayName} supported thermostat fan modes are $value"
+    state.supportedThermostatFanModes = value
+    log.info descriptionText
 }
 
-//capability mediaGroup in SmartThings
-def setGroupPrimaryDeviceIdValue(value) {
-    String descriptionText = "${device.displayName} is $value"
-    sendEvent(name: "groupPrimaryDeviceId", value: value, descriptionText: descriptionText)
-    logInfo descriptionText
+def setSupportedThermostatModesValue(value) {
+    String descriptionText = "${device.displayName} supported thermostat modes are $value"
+    state.supportedThermostatModes = value
+    log.info descriptionText
 }
 
-//capability mediaGroup in SmartThings
-def setGroupIdValue(value) {
-    String descriptionText = "${device.displayName} is $value"
-    sendEvent(name: "groupId", value: value, descriptionText: descriptionText)
-    logInfo descriptionText
+def setTemperatureValue(value) {
+    String unit = "°${getTemperatureScale()}"
+    String descriptionText = "${device.displayName} temperature is $value $unit"
+    sendEvent(name: "temperature", value:value, unit: unit, descriptionText: descriptionText)
+    log.info descriptionText
 }
 
-//capability mediaGroup in SmartThings
-def setGroupVolumeValue(value) {
-    String unit = "%"
-    String descriptionText = "${device.displayName} is $value $unit"
-    sendEvent(name: "groupVolume", value: value, unit: unit, descriptionText: descriptionText)
-    logInfo descriptionText
+def setThermostatFanModeValue(value) {
+	String descriptionText = "${device.displayName} thermostatFanMode is $value"
+    sendEvent(name: "thermostatFanMode", value: value, descriptionText: descriptionText)
+    log.info descriptionText
 }
 
-//capability mediaGroup in SmartThings
-def setGroupRoleValue(value) {
-    String descriptionText = "${device.displayName} is $value"
-    sendEvent(name: "groupRole", value: value, descriptionText: descriptionText)
-    logInfo descriptionText
+def setThermostatFanModeAuto() {
+    setThermostatFanModeValue ("auto")
 }
 
-//capability audioMute in SmartThings
-def setMuteValue(value) {
-    String descriptionText = "${device.displayName} is $value"
-    sendEvent(name: "mute", value: value, descriptionText: descriptionText)
-    logInfo descriptionText
+def setThermostatFanModeCirculate() {
+    setThermostatFanModeValue ("circulate")
 }
 
-//capability mediaPlayback in SmartThings
-def setStatusValue(value) {
-    String descriptionText = "${device.displayName} is $value"
-    sendEvent(name: "status", value: value, descriptionText: descriptionText)
-    logInfo descriptionText
+def setThermostatFanModeOn() {
+    setThermostatFanModeValue ("on")
 }
 
-
-//capability mediaPresets in SmartThings
-def setFavoritesValue(event) {
-    favorites = event.value
-    favorites = favorites.sort { a,b -> a.name <=> b.name}       //Sort by Name for potential dropdown  
-    state.favorites = favorites
-    if(settings?.favoritesAsAttribute == true) {
-        favorites = new JsonBuilder(event.value).toPrettyString()
-        sendEvent(name: "favorites", value: favorites)
-    } else if (device.currentValue("favorites") != null) {       
-        sendEvent(name: "favorites", value: null)
-        device.deleteCurrentState("favorites")
-    }
-    logInfo "Sonos Favorites ($state.favorites.size total) have been updated"
+def setThermostatFanModeFollowSchedule() {
+    setThermostatFanModeValue ("followSchedule")
 }
 
-//capability audioVolume in SmartThings
-//Native HE Integration uses both Volume and Level, So Both are Included Here
-def setVolumeValue(value) {
-    String unit = "%"
-    String descriptionText = "${device.displayName} is $value $unit"
-    sendEvent(name: "volume", value: value, unit: unit)
-    sendEvent(name: "level", value: value, unit: unit)
-    logInfo descriptionText
+def setThermostatModeValue(value) {
+    String descriptionText = "${device.displayName} thermostatMode is $value"
+    sendEvent(name: "thermostatMode", value: value, descriptionText: descriptionText)
+    log.info descriptionText
 }
 
-//capability mediaPlayback in SmartThings
-//Omitted from Rules; not needed by Hubitat
-def setSupportedPlaybackCommandsValue(value) {
-    String descriptionText = "${device.displayName} is $value"
-    sendEvent(name: "supportedPlaybackCommands", value: value, descriptionText: descriptionText)
-    logInfo descriptionText
+def setThermostatModeAuto() {
+    setThermostatModeValue("auto")
 }
 
-//capability mediaTrackControl in SmartThings
-//Omitted from Rules; not needed by Hubitat
-def setSupportedTrackControlCommandsValue(value) {
-    String descriptionText = "${device.displayName} is $value"
-    sendEvent(name: "supportedTrackControlCommands", value: value, descriptionText: descriptionText)
-    logInfo descriptionText
+def setThermostatModeCool() {
+    setThermostatModeValue("cool")
 }
-	
+
+def setThermostatModeEmergencyHeat() {
+    setThermostatModeValue("emergencyHeat")
+}
+
+def setThermostatModeHeat() {
+    setThermostatModeValue("heat")
+}
+
+def setThermostatModeOff() {
+    setThermostatModeValue("off")
+}
+
+def setThermostatOperatingStateValue(value) {
+    String descriptionText = "${device.displayName} thermostatOperatingState is $value"
+    sendEvent(name: "thermostatOperatingState", value: value, descriptionText: descriptionText)
+    log.info descriptionText
+}
+
 def setHealthStatusValue(value) {    
     sendEvent(name: "healthStatus", value: value, descriptionText: "${device.displayName} healthStatus set to $value")
 }
@@ -247,170 +179,91 @@ def setHealthStatusValue(value) {
 // Methods documented here will show up in the Replica Trigger Configuration. These should be all of the native capability commands
 Map getReplicaTriggers() {
     return ([
-		"mute":[], 
-		"unmute":[],
-		"nextTrack":[],
-		"previousTrack":[],
-		"pause":[],
-		"play":[],
-		"stop":[],
-		"volumeDown":[],
-		"volumeUp":[],
-		"setVolume":[[name:"volume*",type:"NUMBER"]],
-		"setLevel":[[name:"volume*",type:"NUMBER"]],
-		"playFavorite": [[name:"id*",type:"STRING"]],
-		"groupVolumeUp":[],
-		"groupVolumeDown":[],
-		"muteGroup":[],
-		"unmuteGroup":[],
-		"setGroupMute":[[name: "state*", type: "ENUM"]],
-		"setGroupVolume":[[name:"groupVolume*",type:"NUMBER"]],
-		"playTrack":[[name:"trackuri*",type:"STRING"],[name:"volumelevel*",type:"NUMBER",data:"volumelevel"]],
-		"playTrackAndResume":[[name:"trackuri*",type:"STRING"],[name:"volumelevel*",type:"NUMBER",data:"volumelevel"]],
-		"playTrackAndRestore":[[name:"trackuri*",type:"STRING"],[name:"volumelevel*",type:"NUMBER",data:"volumelevel"]],
-
-		"refresh":[]
+      "setCoolingSetpoint":[[name:"temperature*",type:"NUMBER"]], 
+      "setHeatingSetpoint":[[name:"temperature*",type:"NUMBER"]],   
+      "setTemperature":[[name:"temperature*",type:"NUMBER"]], 
+      "setThermostatFanMode":[[name:"thermostatFanMode*",type:"ENUM"]], 
+      "fanAuto":[], "fanCirculate":[], "fanOn":[],"followSchedule":[],
+      "setThermostatMode":[[name:"thermostatMode*",type:"ENUM"]],
+      "auto":[], "cool":[], "emergencyHeat":[], "heat":[], "off":[],
+      "setThermostatOperatingState":[[name:"thermostatOperatingState*",type:"ENUM"]], 
+      "refresh":[]
     ])
 }
 
 private def sendCommand(String name, def value=null, String unit=null, data=[:]) {
-    data.version=version()
-    parent?.deviceTriggerHandler(device, [name:name, value:value, unit:unit, data:data, now:now()])
+    parent?.deviceTriggerHandler(device, [name:name, value:value, unit:unit, data:data, now:now])
 }
 
-def mute() { 
-    sendCommand("mute")
+def setCoolingSetpoint(value) {
+    sendCommand("setCoolingSetpoint", value)
 }
 
-def unmute() {
-    sendCommand("unmute")
+def setHeatingSetpoint(value) {
+    sendCommand("setHeatingSetpoint",value)
 }
 
-def nextTrack() {
-    sendCommand("nextTrack")
+def setTemperature(value) {
+    sendCommand("setTemperatureValue",value)
 }
 
-def previousTrack() {
-    sendCommand("previousTrack")
+def setThermostatFanMode(value) {
+    sendCommand("setThermostatFanMode",value)
 }
 
-def pause() {
-    sendCommand("pause")
+def fanAuto() {
+    sendCommand("fanAuto")
 }
 
-def play() {
-    sendCommand("play")
+def fanCirculate() {
+    sendCommand("fanCirculate")
 }
 
-def stop() {
-    sendCommand("stop")
+def fanOn() {
+    sendCommand("fanOn")
 }
 
-def volumeUp() {
-    sendCommand("volumeUp")
+def followSchedule() {
+    sendCommand("followSchedule")
 }
 
-def volumeDown() {
-    sendCommand("volumeDown")
+def setThermostatMode(value) {
+    sendCommand("setThermostatMode",value)
 }
 
-def setVolume(volume) {
-    sendCommand("setVolume",volume)
+def auto() {
+    sendCommand("auto")
 }
 
-def setLevel(volume) {
-    sendCommand("setVolume",volume)
+def cool() {
+    sendCommand("cool")
 }
 
-def playFavorite(favoriteId=null,favoriteName=null) {   
-    if(favoriteId != null) {
-        selectedFavorite = state.favorites.find {it.id==favoriteId}
-        method = "id"
-        if(selectedFavorite == null) { 
-            log.info  "No match for Favorite Id requested. Selecting Random Favorite." 
-        } 
-    } else if((favoriteName != null) && (settings?.partialMatches == false)) {   
-        selectedFavorite = state.favorites.find {it.name.toLowerCase()==favoriteName.toLowerCase()}
-        method = "name"
-        if(selectedFavorite == null) { 
-            log.info  "No match for Favorite Name requested. Selecting Random Favorite." 
-        } 
-    } else if((favoriteName != null) && (settings?.partialMatches == true) ) {     
-        selectedFavorite = state.favorites.find {it.name.toLowerCase().contains(favoriteName.toLowerCase())}
-        method = "name (partial match)"
-        if(selectedFavorite == null) { 
-            logInfo "No match for partial Favorite Name requested. Selecting Random Favorite."
-        }
-    }
-    if (selectedFavorite == null) {
-        Random rnd = new Random()
-        selectedFavorite = state.favorites[(rnd.nextInt(state.favorites.size))]
-        method = "random"
-    }
-    id = selectedFavorite.id
-    name = selectedFavorite.name
-    mediaSource = selectedFavorite.mediaSource
-    imageUrl = selectedFavorite.imageUrl
-    sendCommand("playFavorite",id)
-    logInfo "Requesting Favorite ${name} (ID ${id}) by ${method} on ${device.displayName}"
-    date = new Date()
-    sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-    requestDate = sdf.format(date)   
-    lastFavoriteRequest = JsonOutput.toJson(
-        [
-            id: id, 
-            name: name, 
-            mediaSource: mediaSource,
-            imageUrl: imageUrl,
-            method: method, 
-            time: requestDate 
-        ]
-    )   
-    sendEvent(name: "lastFavoriteRequest", value: lastFavoriteRequest)                         
-}  
-
-def groupVolumeUp() {
-    sendCommand("groupVolumeUp")
-}
-		
-def groupVolumeDown() {
-    sendCommand("groupVolumeDown")
+def emergencyheat() {
+    sendCommand("emergencyHeat")
 }
 
-def setGroupVolume(groupVolume) {
-    sendCommand("setGroupVolume",groupVolume)
-}
-		
-def muteGroup() {
-    sendCommand("muteGroup")
+def heat() {
+    sendCommand("heat")
 }
 
-def unmuteGroup() {
-    sendCommand("unmuteGroup")
+def off() {
+    sendCommand("off")
 }
 
-def setGroupMute(state) {
-    sendCommand("setGroupMute",state)
-}
-
-def playTrack(trackuri, volumelevel=null) {
-    sendCommand("playTrack",trackuri, null, [volumelevel:volumelevel])
-}
-
-def playTrackAndResume(trackuri, volumelevel=null) {
-    sendCommand("playTrackAndResume", trackuri, null, [volumelevel:volumelevel])
-}
-
-def playTrackAndRestore(trackuri, volumelevel=null) {
-    sendCommand("playTrackAndRestore", trackuri, null, [volumelevel:volumelevel])
+def setThermostatOperatingState(value) {
+    sendCommand("setThermostatOperatingStateValue",value)
 }
 
 void refresh() {
     sendCommand("refresh")
 }
 
+
 String getReplicaRules() {
-    return """{"version":1,"components":[{"trigger":{"type":"attribute","properties":{"value":{"title":"HealthState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"healthCheck","attribute":"healthStatus","label":"attribute: healthStatus.*"},"command":{"name":"setHealthStatusValue","label":"command: setHealthStatusValue(healthStatus*)","type":"command","parameters":[{"name":"healthStatus*","type":"ENUM"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"MuteState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"audioMute","attribute":"mute","label":"attribute: mute.*"},"command":{"name":"setMuteValue","label":"command: setMuteValue(mute*)","type":"command","parameters":[{"name":"mute*","type":"ENUM"}]},"type":"smartTrigger"},{"trigger":{"title":"IntegerPercent","type":"attribute","properties":{"value":{"type":"integer","minimum":0,"maximum":100},"unit":{"type":"string","enum":["%"],"default":"%"}},"additionalProperties":false,"required":["value"],"capability":"audioVolume","attribute":"volume","label":"attribute: volume.*"},"command":{"name":"setVolumeValue","label":"command: setVolumeValue(volume*)","type":"command","parameters":[{"name":"totalTime*","type":"NUMBER"}]},"type":"smartTrigger"},{"trigger":{"name":"nextTrack","label":"command: nextTrack()","type":"command"},"command":{"name":"nextTrack","type":"command","capability":"mediaTrackControl","label":"command: nextTrack()"},"type":"hubitatTrigger"},{"trigger":{"name":"previousTrack","label":"command: previousTrack()","type":"command"},"command":{"name":"previousTrack","type":"command","capability":"mediaTrackControl","label":"command: previousTrack()"},"type":"hubitatTrigger"},{"trigger":{"name":"mute","label":"command: mute()","type":"command"},"command":{"name":"mute","type":"command","capability":"audioMute","label":"command: mute()"},"type":"hubitatTrigger"},{"trigger":{"name":"unmute","label":"command: unmute()","type":"command"},"command":{"name":"unmute","type":"command","capability":"audioMute","label":"command: unmute()"},"type":"hubitatTrigger"},{"trigger":{"name":"stop","label":"command: stop()","type":"command"},"command":{"name":"stop","type":"command","capability":"mediaPlayback","label":"command: stop()"},"type":"hubitatTrigger"},{"trigger":{"name":"play","label":"command: play()","type":"command"},"command":{"name":"play","type":"command","capability":"mediaPlayback","label":"command: play()"},"type":"hubitatTrigger"},{"trigger":{"name":"pause","label":"command: pause()","type":"command"},"command":{"name":"pause","type":"command","capability":"mediaPlayback","label":"command: pause()"},"type":"hubitatTrigger"},{"trigger":{"name":"volumeDown","label":"command: volumeDown()","type":"command"},"command":{"name":"volumeDown","type":"command","capability":"audioVolume","label":"command: volumeDown()"},"type":"hubitatTrigger"},{"trigger":{"name":"volumeUp","label":"command: volumeUp()","type":"command"},"command":{"name":"volumeUp","type":"command","capability":"audioVolume","label":"command: volumeUp()"},"type":"hubitatTrigger"},{"trigger":{"name":"setVolume","label":"command: setVolume(volume*)","type":"command","parameters":[{"name":"volume*","type":"NUMBER"}]},"command":{"name":"setVolume","arguments":[{"name":"volume","optional":false,"schema":{"type":"integer","minimum":0,"maximum":100}}],"type":"command","capability":"audioVolume","label":"command: setVolume(volume*)"},"type":"hubitatTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"String","type":"string","maxLength":255}},"additionalProperties":false,"required":["value"],"capability":"mediaGroup","attribute":"groupId","label":"attribute: groupId.*"},"command":{"name":"setGroupIdValue","label":"command: setGroupIdValue(groupId*)","type":"command","parameters":[{"name":"groupId*","type":"STRING"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"MuteState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"mediaGroup","attribute":"groupMute","label":"attribute: groupMute.*"},"command":{"name":"setGroupMuteValue","label":"command: setGroupMuteValue(groupMute*)","type":"command","parameters":[{"name":"groupMute*","type":"ENUM"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"String","type":"string","maxLength":255}},"additionalProperties":false,"required":["value"],"capability":"mediaGroup","attribute":"groupPrimaryDeviceId","label":"attribute: groupPrimaryDeviceId.*"},"command":{"name":"setGroupPrimaryDeviceIdValue","label":"command: setGroupPrimaryDeviceIdValue(groupPrimaryDeviceId*)","type":"command","parameters":[{"name":"groupPrimaryDeviceId*","type":"STRING"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"type":"string"}},"additionalProperties":false,"required":["value"],"capability":"mediaGroup","attribute":"groupRole","label":"attribute: groupRole.*"},"command":{"name":"setGroupRoleValue","label":"command: setGroupRoleValue(groupRole*)","type":"command","parameters":[{"name":"groupRole*","type":"ENUM"}]},"type":"smartTrigger"},{"trigger":{"title":"IntegerPercent","type":"attribute","properties":{"value":{"type":"integer","minimum":0,"maximum":100},"unit":{"type":"string","enum":["%"],"default":"%"}},"additionalProperties":false,"required":["value"],"capability":"mediaGroup","attribute":"groupVolume","label":"attribute: groupVolume.*"},"command":{"name":"setGroupVolumeValue","label":"command: setGroupVolumeValue(groupVolume*)","type":"command","parameters":[{"name":"groupVolume*","type":"NUMBER"}]},"type":"smartTrigger"},{"trigger":{"name":"muteGroup","label":"command: muteGroup()","type":"command"},"command":{"name":"muteGroup","type":"command","capability":"mediaGroup","label":"command: muteGroup()"},"type":"hubitatTrigger"},{"trigger":{"name":"setGroupVolume","label":"command: setGroupVolume(groupVolume*)","type":"command","parameters":[{"name":"groupVolume*","type":"NUMBER"}]},"command":{"name":"setGroupVolume","arguments":[{"name":"groupVolume","optional":false,"schema":{"type":"integer","minimum":0,"maximum":100}}],"type":"command","capability":"mediaGroup","label":"command: setGroupVolume(groupVolume*)"},"type":"hubitatTrigger"},{"trigger":{"name":"unmuteGroup","label":"command: unmuteGroup()","type":"command"},"command":{"name":"unmuteGroup","type":"command","capability":"mediaGroup","label":"command: unmuteGroup()"},"type":"hubitatTrigger"},{"trigger":{"name":"groupVolumeDown","label":"command: groupVolumeDown()","type":"command"},"command":{"name":"groupVolumeDown","type":"command","capability":"mediaGroup","label":"command: groupVolumeDown()"},"type":"hubitatTrigger"},{"trigger":{"name":"groupVolumeUp","label":"command: groupVolumeUp()","type":"command"},"command":{"name":"groupVolumeUp","type":"command","capability":"mediaGroup","label":"command: groupVolumeUp()"},"type":"hubitatTrigger"},{"trigger":{"name":"playTrackAndRestore","label":"command: playTrackAndRestore(trackuri*, volumelevel*)","type":"command","parameters":[{"name":"trackuri*","type":"STRING"},{"name":"volumelevel*","type":"NUMBER","data":"volumelevel"}]},"command":{"name":"playTrackAndRestore","arguments":[{"name":"uri","optional":false,"schema":{"title":"URI","type":"string","format":"uri"}},{"name":"level","optional":true,"schema":{"type":"integer","minimum":0,"maximum":100}}],"type":"command","capability":"audioNotification","label":"command: playTrackAndRestore(uri*, level)"},"type":"hubitatTrigger"},{"trigger":{"name":"playTrackAndResume","label":"command: playTrackAndResume(trackuri*, volumelevel*)","type":"command","parameters":[{"name":"trackuri*","type":"STRING"},{"name":"volumelevel*","type":"NUMBER","data":"volumelevel"}]},"command":{"name":"playTrackAndResume","arguments":[{"name":"uri","optional":false,"schema":{"title":"URI","type":"string","format":"uri"}},{"name":"level","optional":true,"schema":{"type":"integer","minimum":0,"maximum":100}}],"type":"command","capability":"audioNotification","label":"command: playTrackAndResume(uri*, level)"},"type":"hubitatTrigger"},{"trigger":{"name":"playTrack","label":"command: playTrack(trackuri*, volumelevel*)","type":"command","parameters":[{"name":"trackuri*","type":"STRING"},{"name":"volumelevel*","type":"NUMBER","data":"volumelevel"}]},"command":{"name":"playTrack","arguments":[{"name":"uri","optional":false,"schema":{"title":"URI","type":"string","format":"uri"}},{"name":"level","optional":true,"schema":{"type":"integer","minimum":0,"maximum":100}}],"type":"command","capability":"audioNotification","label":"command: playTrack(uri*, level)"},"type":"hubitatTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"AudioTrackData","type":"object","additionalProperties":false,"properties":{"title":{"title":"String","type":"string","maxLength":255},"artist":{"title":"String","type":"string","maxLength":255},"album":{"title":"String","type":"string","maxLength":255},"albumArtUrl":{"title":"URI","type":"string","format":"uri"},"mediaSource":{"title":"String","type":"string","maxLength":255}},"required":["title"]}},"additionalProperties":false,"required":["value"],"capability":"audioTrackData","attribute":"audioTrackData","label":"attribute: audioTrackData.*"},"command":{"name":"setTrackDataValue","label":"command: setTrackDataValue(trackData*)","type":"command","parameters":[{"name":"trackData*","type":"JSON_OBJECT"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"type":"string"}},"additionalProperties":false,"required":[],"capability":"mediaPlayback","attribute":"playbackStatus","label":"attribute: playbackStatus.*"},"command":{"name":"setStatusValue","label":"command: setStatusValue(Status*)","type":"command","parameters":[{"name":"Status*","type":"ENUM"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"type":"array","items":{"title":"MediaPreset","type":"object","additionalProperties":false,"properties":{"id":{"type":"string"},"name":{"type":"string"},"mediaSource":{"type":"string"},"imageUrl":{"type":"string"}},"required":["id","name"]}}},"additionalProperties":false,"required":[],"capability":"mediaPresets","attribute":"presets","label":"attribute: presets.*"},"command":{"name":"setFavoritesValue","label":"command: setFavoritesValue(favorites*)","type":"command","parameters":[{"name":"favorites*","type":"JSON_OBJECT"}]},"type":"smartTrigger"},{"trigger":{"name":"playFavorite","label":"command: playFavorite(id*)","type":"command","parameters":[{"name":"id*","type":"STRING"}]},"command":{"name":"playPreset","arguments":[{"name":"presetId","optional":false,"schema":{"title":"String","type":"string","maxLength":255}}],"type":"command","capability":"mediaPresets","label":"command: playPreset(presetId*)"},"type":"hubitatTrigger"},{"trigger":{"name":"refresh","label":"command: refresh()","type":"command"},"command":{"name":"refresh","type":"command","capability":"refresh","label":"command: refresh()"},"type":"hubitatTrigger","disableStatus":true},{"trigger":{"name":"setGroupMute","label":"command: setGroupMute(state*)","type":"command","parameters":[{"name":"state*","type":"ENUM"}]},"command":{"name":"setGroupMute","arguments":[{"name":"state","optional":false,"schema":{"title":"MuteState","type":"string","enum":["muted","unmuted"]}}],"type":"command","capability":"mediaGroup","label":"command: setGroupMute(state*)"},"type":"hubitatTrigger"}]}"""
+    return """{"version":1,"components":[ {"trigger":{"name":"auto","label":"command: auto()","type":"command"},"command":{"name":"auto","type":"command","capability":"thermostatMode","label":"command: auto()"},"type":"hubitatTrigger"}, {"trigger":{"name":"cool","label":"command: cool()","type":"command"},"command":{"name":"cool","type":"command","capability":"thermostatMode","label":"command: cool()"},"type":"hubitatTrigger"}, {"trigger":{"name":"emergencyHeat","label":"command: emergencyHeat()","type":"command"},"command":{"name":"emergencyHeat","type":"command","capability":"thermostatMode","label":"command: emergencyHeat()"},"type":"hubitatTrigger"}, {"trigger":{"name":"fanAuto","label":"command: fanAuto()","type":"command"},"command":{"name":"fanAuto","type":"command","capability":"thermostatFanMode","label":"command: fanAuto()"},"type":"hubitatTrigger"}, {"trigger":{"name":"fanCirculate","label":"command: fanCirculate()","type":"command"},"command":{"name":"fanCirculate","type":"command","capability":"thermostatFanMode","label":"command: fanCirculate()"},"type":"hubitatTrigger"}, {"trigger":{"name":"fanOn","label":"command: fanOn()","type":"command"},"command":{"name":"fanOn","type":"command","capability":"thermostatFanMode","label":"command: fanOn()"},"type":"hubitatTrigger"}, {"trigger":{"name":"heat","label":"command: heat()","type":"command"},"command":{"name":"heat","type":"command","capability":"thermostatMode","label":"command: heat()"},"type":"hubitatTrigger"}, {"trigger":{"name":"off","label":"command: off()","type":"command"},"command":{"name":"off","type":"command","capability":"thermostatMode","label":"command: off()"},"type":"hubitatTrigger"}, {"trigger":{"name":"setCoolingSetpoint","label":"command: setCoolingSetpoint(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"command":{"name":"setCoolingSetpoint","arguments":[{"name":"setpoint","optional":false,"schema":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000}}],"type":"command","capability":"thermostatCoolingSetpoint","label":"command: setCoolingSetpoint(setpoint*)"},"type":"hubitatTrigger"}, {"trigger":{"name":"setHeatingSetpoint","label":"command: setHeatingSetpoint(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"command":{"name":"setHeatingSetpoint","arguments":[{"name":"setpoint","optional":false,"schema":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000}}],"type":"command","capability":"thermostatHeatingSetpoint","label":"command: setHeatingSetpoint(setpoint*)"},"type":"hubitatTrigger"}, {"trigger":{"name":"setThermostatFanMode","label":"command: setThermostatFanMode(thermostatFanMode*)","type":"command","parameters":[{"name":"thermostatFanMode*","type":"ENUM"}]},"command":{"name":"setThermostatFanMode","arguments":[{"name":"mode","optional":false,"schema":{"title":"ThermostatFanMode","type":"string","enum":["auto","circulate","followschedule","on"]}}],"type":"command","capability":"thermostatFanMode","label":"command: setThermostatFanMode(mode*)"},"type":"hubitatTrigger"}, {"trigger":{"name":"setThermostatMode","label":"command: setThermostatMode(thermostatMode*)","type":"command","parameters":[{"name":"thermostatMode*","type":"ENUM"}]},"command":{"name":"setThermostatMode","arguments":[{"name":"mode","optional":false,"schema":{"title":"ThermostatMode","type":"string","enum":["asleep","auto","autowitheco","autowithreset","autochangeover","autochangeoveractive","autocool","autoheat","auxheatonly","auxiliaryemergencyheat","away","cool","custom","dayoff","dryair","eco","emergency heat","emergencyheat","emergencyheatactive","energysavecool","energysaveheat","fanonly","frostguard","furnace","heat","heatingoff","home","in","manual","moistair","off","out","resume","rush hour","rushhour","schedule","southernaway"]}}],"type":"command","capability":"thermostatMode","label":"command: setThermostatMode(mode*)"},"type":"hubitatTrigger"}, {"trigger":{"title":"IntegerPercent","type":"attribute","properties":{"value":{"type":"integer","minimum":0,"maximum":100},"unit":{"type":"string","enum":["%"],"default":"%"}},"additionalProperties":false,"required":["value"],"capability":"battery","attribute":"battery","label":"attribute: battery.*"},"command":{"name":"setBatteryValue","label":"command: setBatteryValue(battery*)","type":"command","parameters":[{"name":"battery*","type":"NUMBER"}]},"type":"smartTrigger"}, {"trigger":{"title":"Temperature","type":"attribute","properties":{"value":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000},"unit":{"type":"string","enum":["F","C"]}},"additionalProperties":false,"required":["value","unit"],"capability":"thermostatCoolingSetpoint","attribute":"coolingSetpoint","label":"attribute: coolingSetpoint.*"},"command":{"name":"setCoolingSetpointValue","label":"command: setCoolingSetpointValue(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"type":"smartTrigger"}, {"trigger":{"type":"attribute","properties":{"value":{"title":"HealthState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"healthCheck","attribute":"healthStatus","label":"attribute: healthStatus.*"},"command":{"name":"setHealthStatusValue","label":"command: setHealthStatusValue(healthStatus*)","type":"command","parameters":[{"name":"healthStatus*","type":"ENUM"}]},"type":"smartTrigger"}, {"trigger":{"title":"Temperature","type":"attribute","properties":{"value":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000},"unit":{"type":"string","enum":["F","C"]}},"additionalProperties":false,"required":["value","unit"],"capability":"thermostatHeatingSetpoint","attribute":"heatingSetpoint","label":"attribute: heatingSetpoint.*"},"command":{"name":"setHeatingSetpointValue","label":"command: setHeatingSetpointValue(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"type":"smartTrigger"}, {"trigger":{"type":"attribute","properties":{"value":{"type":"array","items":{"title":"ThermostatFanMode","type":"string","enum":["auto","circulate","followschedule","on"]}}},"additionalProperties":false,"required":[],"capability":"thermostatFanMode","attribute":"supportedThermostatFanModes","label":"attribute: supportedThermostatFanModes.*"},"command":{"name":"setSupportedThermostatFanModesValue","label":"command: setSupportedThermostatFanModesValue(supportedThermostatFanModes*)","type":"command","parameters":[{"name":"supportedThermostatFanModes*","type":"JSON_OBJECT"}]},"type":"smartTrigger"}, {"trigger":{"type":"attribute","properties":{"value":{"type":"array","items":{"title":"ThermostatMode","type":"string","enum":["asleep","auto","autowitheco","autowithreset","autochangeover","autochangeoveractive","autocool","autoheat","auxheatonly","auxiliaryemergencyheat","away","cool","custom","dayoff","dryair","eco","emergency heat","emergencyheat","emergencyheatactive","energysavecool","energysaveheat","fanonly","frostguard","furnace","heat","heatingoff","home","in","manual","moistair","off","out","resume","rush hour","rushhour","schedule","southernaway"]}}},"additionalProperties":false,"required":[],"capability":"thermostatMode","attribute":"supportedThermostatModes","label":"attribute: supportedThermostatModes.*"},"command":{"name":"setSupportedThermostatModesValue","label":"command: setSupportedThermostatModesValue(supportedThermostatModes*)","type":"command","parameters":[{"name":"supportedThermostatModes*","type":"JSON_OBJECT"}]},"type":"smartTrigger"}, {"trigger":{"type":"attribute","properties":{"value":{"title":"TemperatureValue","type":"number","minimum":-460,"maximum":10000},"unit":{"type":"string","enum":["F","C"]}},"additionalProperties":false,"required":["value","unit"],"capability":"temperatureMeasurement","attribute":"temperature","label":"attribute: temperature.*"},"command":{"name":"setTemperatureValue","label":"command: setTemperatureValue(temperature*)","type":"command","parameters":[{"name":"temperature*","type":"NUMBER"}]},"type":"smartTrigger"}, {"trigger":{"type":"attribute","properties":{"value":{"title":"ThermostatFanMode","type":"string"},"data":{"type":"object","additionalProperties":false,"required":[],"properties":{"supportedThermostatFanModes":{"type":"array","items":{"title":"ThermostatFanMode","type":"string","enum":["auto","circulate","followschedule","on"]}}}}},"additionalProperties":false,"required":["value"],"capability":"thermostatFanMode","attribute":"thermostatFanMode","label":"attribute: thermostatFanMode.*"},"command":{"name":"setThermostatFanModeValue","label":"command: setThermostatFanModeValue(mode*)","type":"command","parameters":[{"name":"thermostatFanMode*","type":"ENUM"}]},"type":"smartTrigger"}, {"trigger":{"type":"attribute","properties":{"value":{"title":"ThermostatMode","type":"string"},"data":{"type":"object","additionalProperties":false,"required":[],"properties":{"supportedThermostatModes":{"type":"array","items":{"title":"ThermostatMode","type":"string","enum":["asleep","auto","autowitheco","autowithreset","autochangeover","autochangeoveractive","autocool","autoheat","auxheatonly","auxiliaryemergencyheat","away","cool","custom","dayoff","dryair","eco","emergency heat","emergencyheat","emergencyheatactive","energysavecool","energysaveheat","fanonly","frostguard","furnace","heat","heatingoff","home","in","manual","moistair","off","out","resume","rush hour","rushhour","schedule","southernaway"]}}}}},"additionalProperties":false,"required":["value"],"capability":"thermostatMode","attribute":"thermostatMode","label":"attribute: thermostatMode.*"},"command":{"name":"setThermostatModeValue","label":"command: setThermostatModeValue(mode*)","type":"command","parameters":[{"name":"thermostatMode*","type":"ENUM"}]},"type":"smartTrigger"}, {"trigger":{"type":"attribute","properties":{"value":{"title":"ThermostatOperatingState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"thermostatOperatingState","attribute":"thermostatOperatingState","label":"attribute: thermostatOperatingState.*"},"command":{"name":"setThermostatOperatingStateValue","label":"command: setThermostatOperatingStateValue(thermostatOperatingState*)","type":"command","parameters":[{"name":"thermostatOperatingState*","type":"ENUM"}]},"type":"smartTrigger"} ]}
+status: {"components":{"main":{"thermostatOperatingState":{"thermostatOperatingState":{"value":"idle","timestamp":"2023-04-28T03:42:59.895Z"}},"temperatureMeasurement":{"temperature":{"value":78.0,"unit":"F","timestamp":"2023-04-28T21:34:14.631Z"}},"thermostatHeatingSetpoint":{"heatingSetpoint":{"value":65.0,"unit":"F","timestamp":"2023-04-28T17:24:34.109Z"}},"thermostatFanMode":{"thermostatFanMode":{"value":"auto","data":{"supportedThermostatFanModes":["on","auto"]},"timestamp":"2022-12-29T13:13:34.297Z"},"supportedThermostatFanModes":{"value":["on","auto"],"timestamp":"2022-08-24T17:04:47.318Z"}},"refresh":{},"thermostatMode":{"thermostatMode":{"value":"cool","data":{"supportedThermostatModes":["off","heat","cool","auto","emergency heat"]},"timestamp":"2023-04-28T20:23:11.084Z"},"supportedThermostatModes":{"value":["off","heat","cool","auto","emergency heat"],"timestamp":"2022-08-24T17:04:50.228Z"}},"battery":{"battery":{"value":93,"unit":"%","timestamp":"2023-04-28T06:54:59.671Z"}},"thermostatCoolingSetpoint":{"coolingSetpoint":{"value":81.0,"unit":"F","timestamp":"2023-04-28T11:46:18.865Z"}}}}}
+triggers: {"setCoolingSetpoint":[{"name":"temperature*","type":"NUMBER"}],"setHeatingSetpoint":[{"name":"temperature*","type":"NUMBER"}],"setTemperature":[{"name":"temperature*","type":"NUMBER"}],"setThermostatFanMode":[{"name":"thermostatFanMode*","type":"ENUM"}],"fanAuto":[],"fanCirculate":[],"fanOn":[],"followSchedule":[],"setThermostatMode":[{"name":"thermostatMode*","type":"ENUM"}],"auto":[],"cool":[],"emergencyHeat":[],"heat":[],"off":[],"setThermostatOperatingState":[{"name":"thermostatOperatingState*","type":"ENUM"}],"refresh":[]}"""
 }
 
 private logInfo(msg)  { if(settings?.deviceInfoDisable != true) { log.info  "${msg}" } }
