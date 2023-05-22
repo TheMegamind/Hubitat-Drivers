@@ -12,7 +12,7 @@
 *
 */
 @SuppressWarnings('unused')
-public static String version() {return "1.2.0"}
+public static String version() {return "1.3.0"}
 
 metadata 
 {
@@ -26,6 +26,7 @@ metadata
         attribute "healthStatus", "enum", ["offline", "online"]
     }
     preferences {   
+	input(name:"deviceInfoDisable", type: "bool", title: "Disable Info logging:", defaultValue: false)
     }
 }
 
@@ -107,3 +108,9 @@ String getReplicaRules() {
 
     ]}"""
 }
+
+private logInfo(msg)  { if(settings?.deviceInfoDisable != true) { log.info  "${msg}" } }
+private logDebug(msg) { if(settings?.deviceDebugEnable == true) { log.debug "${msg}" } }
+private logTrace(msg) { if(settings?.deviceTraceEnable == true) { log.trace "${msg}" } }
+private logWarn(msg)  { log.warn   "${msg}" }
+private logError(msg) { log.error  "${msg}" }
