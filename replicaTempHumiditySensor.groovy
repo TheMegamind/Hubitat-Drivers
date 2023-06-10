@@ -12,7 +12,7 @@
 *
 */
 @SuppressWarnings('unused')
-public static String version() {return "1.3.0"}
+public static String version() {return "1.3.1"}
 
 metadata 
 {
@@ -51,7 +51,7 @@ def configure() {
 }
 
 // Methods documented here will show up in the Replica Command Configuration. These should be mostly setter in nature. 
-Map getReplicaCommands() {
+static Map getReplicaCommands() {
     return ([ "setBatteryValue":[[name:"battery*",type:"NUMBER"]], 
               "setHumidityValue":[[name:"humidity*",type:"NUMBER"]],
               "setTemperatureValue":[[name:"temperature*",type:"NUMBER"]],
@@ -83,7 +83,7 @@ def setHealthStatusValue(value) {
 }
 
 // Methods documented here will show up in the Replica Trigger Configuration. These should be all of the native capability commands
-Map getReplicaTriggers() {
+static Map getReplicaTriggers() {
     return (["refresh":[]])
 }
 
@@ -95,7 +95,7 @@ void refresh() {
     sendCommand("refresh")
 }
 
-String getReplicaRules() {
+static String getReplicaRules() {
     return """{"version":1,"components":[
         
         {"trigger":{"title":"IntegerPercent","type":"attribute","properties":{"value":{"type":"integer","minimum":0,"maximum":100},"unit":{"type":"string","enum":["%"],"default":"%"}},"additionalProperties":false,"required":["value"],"capability":"battery","attribute":"battery","label":"attribute: battery.*"},"command":{"name":"setBatteryValue","label":"command: setBatteryValue(battery*)","type":"command","parameters":[{"name":"battery*","type":"NUMBER"}]},"type":"smartTrigger","mute":true},
