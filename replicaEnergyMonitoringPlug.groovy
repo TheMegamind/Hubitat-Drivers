@@ -12,7 +12,7 @@
 *
 */
 @SuppressWarnings('unused')
-public static String version() {return "1.3.0"}
+public static String version() {return "1.3.1"}
 
 metadata 
 {
@@ -53,7 +53,7 @@ def configure() {
 }
 
 // Methods documented here will show up in the Replica Command Configuration. These should be mostly setter in nature. 
-Map getReplicaCommands() {
+static Map getReplicaCommands() {
     return ([ 
 	    "setSwitchValue":[[name:"switch*",type:"ENUM"]], 
 	    	"setSwitchOff":[], "setSwitchOn":[], 
@@ -93,7 +93,7 @@ def setHealthStatusValue(value) {
 }
 
 // Methods documented here will show up in the Replica Trigger Configuration. These should be all of the native capability commands
-Map getReplicaTriggers() {
+static Map getReplicaTriggers() {
     return ([ "off":[] , "on":[], "refresh":[]])
 }
 
@@ -114,7 +114,7 @@ void refresh() {
     sendCommand("refresh")
 }
 
-String getReplicaRules() {
+static String getReplicaRules() {
     return """{"version":1,"components":[{"trigger":{"name":"off","label":"command: off()","type":"command"},"command":{"name":"off","type":"command","capability":"switch","label":"command: off()"},"type":"hubitatTrigger"},{"trigger":{"name":"on","label":"command: on()","type":"command"},"command":{"name":"on","type":"command","capability":"switch","label":"command: on()"},"type":"hubitatTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"SwitchState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"switch","attribute":"switch","label":"attribute: switch.*"},"command":{"name":"setSwitchValue","label":"command: setSwitchValue(switch*)","type":"command","parameters":[{"name":"switch*","type":"ENUM"}]},"type":"smartTrigger"},{"trigger":{"type":"attribute","properties":{"value":{"title":"HealthState","type":"string"}},"additionalProperties":false,"required":["value"],"capability":"healthCheck","attribute":"healthStatus","label":"attribute: healthStatus.*"},"command":{"name":"setHealthStatusValue","label":"command: setHealthStatusValue(healthStatus*)","type":"command","parameters":[{"name":"healthStatus*","type":"ENUM"}]},"type":"smartTrigger","mute":true},{"trigger":{"type":"attribute","properties":{"value":{"type":"number"},"unit":{"type":"string","enum":["W"],"default":"W"}},"additionalProperties":false,"required":["value"],"capability":"powerMeter","attribute":"power","label":"attribute: power.*"},"command":{"name":"setPowerValue","label":"command: setPowerValue(power*)","type":"command","parameters":[{"name":"power*","type":"NUMBER"}]},"type":"smartTrigger","disableStatus":true},{"trigger":{"type":"attribute","properties":{"value":{"type":"number"},"unit":{"type":"string","enum":["Wh","kWh","mWh","kVAh"],"default":"kWh"}},"additionalProperties":false,"required":["value"],"capability":"energyMeter","attribute":"energy","label":"attribute: energy.*"},"command":{"name":"setEnergyValue","label":"command: setEnergyValue(energy*)","type":"command","parameters":[{"name":"energy*","type":"NUMBER"}]},"type":"smartTrigger"}]}"""
 }
 
