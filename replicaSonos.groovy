@@ -13,7 +13,7 @@
 ***** Thanks to @bloodtick_jones, developer of HubiThings Replica, whose work provided the foundation. All mistakes are mine. *****
 */
 @SuppressWarnings('unused')
-public static String version() {return "1.3.1"}
+public static String version() {return "1.3.2"}
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
 import java.text.SimpleDateFormat
@@ -327,13 +327,13 @@ def playFavorite(favoriteId=null,favoriteName=null) {
         selectedFavorite = state.favorites.find {it.id==favoriteId}
         method = "id"
         if(selectedFavorite == null) { 
-            log.info  "No match for Favorite Id requested. Selecting Random Favorite." 
+            logInfo  "No match for Favorite Id requested. Selecting Random Favorite." 
         } 
     } else if((favoriteName != null) && (settings?.partialMatches == false)) {   
         selectedFavorite = state.favorites.find {it.name.toLowerCase()==favoriteName.toLowerCase()}
         method = "name"
         if(selectedFavorite == null) { 
-            log.info  "No match for Favorite Name requested. Selecting Random Favorite." 
+            logInfo  "No match for Favorite Name requested. Selecting Random Favorite." 
         } 
     } else if((favoriteName != null) && (settings?.partialMatches == true) ) {     
         selectedFavorite = state.favorites.find {it.name.toLowerCase().contains(favoriteName.toLowerCase())}
