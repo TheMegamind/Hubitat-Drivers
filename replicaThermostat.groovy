@@ -1,5 +1,5 @@
 /**
-*  Copyright 2022 bthrock
+*  Copyright 2024 bthrock
 *
 *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 *  in compliance with the License. You may obtain a copy of the License at:
@@ -11,7 +11,7 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 */
-public static String version() {return "1.3.4"}
+public static String version() {return "1.3.5"}
 
 metadata 
 {
@@ -22,12 +22,8 @@ metadata
         capability "Configuration"
         capability "Refresh"
         capability "Sensor"
+        capability "Thermostat"
         capability "TemperatureMeasurement"
-        capability "ThermostatCoolingSetpoint"
-        capability "ThermostatHeatingSetpoint"
-        capability "ThermostatFanMode"
-        capability "ThermostatMode"
-        capability "ThermostatOperatingState"
         
         command "setThermostatOperatingState", [[name: "Thermostat Operating State*", type: "ENUM", description: "Override the SmartThings Operating State or remove it", constraints: [ "idle", "vent economizer", "pending cool", "cooling", "heating", "pending heat", "fan only", "[remove attribute]" ]]]
         
@@ -91,33 +87,44 @@ def setBatteryValue(value) {
 def setCoolingSetpointValue(value) {
     String unit = "°${getTemperatureScale()}"
     String descriptionText = "${device.displayName} coolingSetPoint is $value $unit"
-    sendEvent(name: "coolingSetpoint", value: value, descriptionText: descriptionText)
+    sendEvent(name: "coolingSetpoint", value: value?.toFloat(), unit: unit, descriptionText: descriptionText)
+    if((device.currentValue("thermostatMode",true)=="cool" || device.currentValue("thermostatMode",true)=="auto")) {
+        sendEvent(name: "thermostatSetpoint", value: value?.toFloat(), unit: unit)
+        if(device.currentValue("heatingSetpoint",true)?.toFloat()<value?.toFloat()-2.0)
+            sendEvent(name: "heatingSetpoint", value: value?.toFloat()-2.0, unit: unit)        
+    }
     logInfo descriptionText
 }
 
 def setHeatingSetpointValue(value) {
     String unit = "°${getTemperatureScale()}"
     String descriptionText = "${device.displayName} heatingSetpoint is $value $unit"
-    sendEvent(name: "heatingSetpoint", value: value, descriptionText: descriptionText)
+    sendEvent(name: "heatingSetpoint", value: value?.toFloat(), unit: unit, descriptionText: descriptionText)    
+    if((device.currentValue("thermostatMode",true)=="heat" || device.currentValue("thermostatMode",true)=="auto")) {
+        sendEvent(name: "thermostatSetpoint", value: value?.toFloat(), unit: unit)
+        if(device.currentValue("coolingSetpoint",true)?.toFloat()<value?.toFloat()+2.0)
+            sendEvent(name: "coolingSetpoint", value: value?.toFloat()+2.0, unit: unit)        
+    }
     logInfo descriptionText
 }
 
 def setSupportedThermostatFanModesValue(value) {
     String descriptionText = "${device.displayName} supported thermostat fan modes are $value"
-    state.supportedThermostatFanModes = groovy.json.JsonOutput.toJson(value)
+    sendEvent(name: "supportedThermostatFanModes", value: groovy.json.JsonOutput.toJson(value), descriptionText: descriptionText)
     logInfo descriptionText
 }
 
+
 def setSupportedThermostatModesValue(value) {
     String descriptionText = "${device.displayName} supported thermostat modes are $value"
-    state.supportedThermostatModes = groovy.json.JsonOutput.toJson(value)
+    sendEvent(name: "supportedThermostatModes", value: groovy.json.JsonOutput.toJson(value), descriptionText: descriptionText)
     logInfo descriptionText
 }
 
 def setTemperatureValue(value) {
     String unit = "°${getTemperatureScale()}"
     String descriptionText = "${device.displayName} temperature is $value $unit"
-    sendEvent(name: "temperature", value:value, unit: unit, descriptionText: descriptionText)
+    sendEvent(name: "temperature", value: value?.toFloat(), unit: unit, descriptionText: descriptionText)
     logInfo descriptionText
 }
 
@@ -199,22 +206,25 @@ private def sendCommand(String name, def value=null, String unit=null, data=[:])
 }
 
 def setCoolingSetpoint(value) {
-    sendCommand("setCoolingSetpoint", value)
+    String unit = "°${getTemperatureScale()}"
+    sendCommand("setCoolingSetpoint", value,unit)
 }
 
 def setHeatingSetpoint(value) {
-    sendCommand("setHeatingSetpoint",value)
+    String unit = "°${getTemperatureScale()}"
+    sendCommand("setHeatingSetpoint",value,unit)
 }
 
 def setTemperature(value) {
-    sendCommand("setTemperatureValue",value)
+    String unit = "°${getTemperatureScale()}"
+    sendCommand("setTemperatureValue",value,unit)
 }
 
 def setThermostatFanMode(value) {
-    if(!state?.supportedThermostatFanModes || (new groovy.json.JsonSlurper().parseText(state?.supportedThermostatFanModes)?.find{ it==value })) {
+    if(!device.currentValue("setThermostatFanMode",true) || (new groovy.json.JsonSlurper().parseText(device.currentValue("setThermostatFanMode",true))?.find{ it==value })) {
         sendCommand("setThermostatFanMode",value)
-    } else if(state?.supportedThermostatFanModes) {
-        logWarn "${device.displayName} setThermostatFanMode '$value' not found in ${state?.supportedThermostatFanModes}"
+    } else if(!!device.currentValue("setThermostatFanMode",true)) {
+        logWarn "${device.displayName} setThermostatFanMode '$value' not found in ${device.currentValue("setThermostatFanMode",true)}"
     } 
 }
 
@@ -235,10 +245,10 @@ def followSchedule() {
 }
 
 def setThermostatMode(value) {
-    if(!state?.supportedThermostatModes || (new groovy.json.JsonSlurper().parseText(state?.supportedThermostatModes)?.find{ it==value })) {
+    if(!device.currentValue("supportedThermostatModes",true) || (new groovy.json.JsonSlurper().parseText(device.currentValue("supportedThermostatModes",true))?.find{ it==value })) {
         sendCommand("setThermostatMode",value)
-    } else if(state?.supportedThermostatModes) {
-        logWarn "${device.displayName} setThermostatMode '$value' not found in ${state?.supportedThermostatModes}"
+    } else if(!!device.currentValue("supportedThermostatModes",true)) {
+        logWarn "${device.displayName} setThermostatMode '$value' not found in ${device.currentValue("supportedThermostatModes",true)}"
     }  
 }
 
