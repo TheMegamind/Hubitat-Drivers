@@ -1,5 +1,5 @@
 /**
-*  Copyright 2022-2024 bthrock
+*  Copyright 2022 bthrock
 *
 *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 *  in compliance with the License. You may obtain a copy of the License at:
@@ -12,7 +12,7 @@
 *
 */
 @SuppressWarnings('unused')
-public static String version() {return "1.3.2"}
+public static String version() {return "1.3.3"}
 
 metadata 
 {
