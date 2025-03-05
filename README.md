@@ -1,4 +1,4 @@
-# Pi-hole 6 Blocking Control - Hubitat Driver
+# Pi-hole 6 Blocking Control Driver
 
 ## Overview
 
