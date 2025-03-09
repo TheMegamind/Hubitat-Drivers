@@ -1,5 +1,5 @@
 /**
- *  Copyright 2025 bthrock
+ *  Copyright 2025 Megamind
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -17,17 +17,18 @@
  *    →→ Optional Auto-Refresh to track blocking status changes initiated elsewhere
  *    →→ Tracks SID Expiration and reuses unexpired SIDs or re-authenticates to minimize active sessions
  *     
- *   Date            Who                    Description
- *   -------------   -------------------    ---------------------------------------------------------
- *   01-05-2025      bthrock                0.9.0 Initial Beta Release
- *   01-14-2025      bthrock                0.9.1 Add version, copyright & author strings
+ *   Date            Description
+ *   -------------  ---------------------------------------------------------
+ *   01-05-2025      0.9.0 Initial Beta Release
+ *   01-14-2025      0.9.1 Add version, copyright & author strings
+ *   03-09-2025      0.9.2 Include Switch State in Device Presentation
  *
  * LINE 30 MAX 
  */
 
 public static String version() { return "0.9.1" }
 public static String copyright() { return "&copy; 2025 ${author()}" }
-public static String author() { return "bthrock" }
+public static String author() { return "Megamind" }
 
 import groovy.transform.Field
 
@@ -42,8 +43,8 @@ import groovy.transform.Field
 metadata {
     definition(
         name: "Pi-hole 6 Blocking Control",
-        namespace: "bthrock",
-        author: "bthrock",
+        namespace: "Megamind",
+        author: "Megamind",
         importUrl: "https://raw.githubusercontent.com/TheMegamind/Pi-hole6/refs/heads/main/Hubitat/Blocking%20Control%20Device%20Driver"
     ) {
         capability "Actuator"
@@ -163,6 +164,7 @@ def resetSessions() {
 def on() {
     logInfo("Enabling blocking for Pi-holes")
     handleBlockingCommand(true, null)
+    sendEvent(name: "switch", value: "on")  // Update the standard switch state
 }
 
 def enable() {
@@ -173,6 +175,7 @@ def enable() {
 def off() {
     logInfo("Disabling blocking for Pi-holes using default timer")
     disable(settings.defaultBlockingTime?.toInteger() ?: 300)
+    sendEvent(name: "switch", value: "off") // Update the standard switch state
 }
 
 def disable(timer = null) {
