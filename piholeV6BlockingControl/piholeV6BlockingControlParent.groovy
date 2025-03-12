@@ -34,7 +34,7 @@ metadata {
         name: "Pi-hole 6 Blocking Control Parent",
         namespace: "Megamind",
         author: "Megamind",
-        importUrl: "https://your.repository.url/ParentDriver.groovy"
+        importUrl: "https://raw.githubusercontent.com/TheMegamind/Hubitat-Drivers/refs/heads/main/piholeV6BlockingControl/piholeV6BlockingControlParent.groovy"
     ) {
         capability "Actuator"
         capability "Switch"
