@@ -6,7 +6,7 @@
     {
       "name": "Pi-hole v6 Multi-Instance Blocking Control",
       "category": "Control",
-      "location": "https://github.com/TheMegamind/Hubitat-Drivers/blob/main/piholeV6BlockingControl/hubitat-packages/packageManifest.json",
+      "location": "https://github.com/TheMegamind/Hubitat-Drivers/blob/main/hubitat-packages/piBlockingManifest.json",
       "description": "Virtual Parent-Child Device Drivers to enable and disable ad-blocking controls on one or more Pi-hole Instances"
     }
   ]	
