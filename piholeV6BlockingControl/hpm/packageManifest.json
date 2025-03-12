@@ -1,0 +1,32 @@
+{
+    "packageName": "Pi-hole v6 Multi-Instance Blocking Control",
+    "author": "Megamind",
+    "communityLink": "",
+    "version": "1.0.0",
+    "minimumHEVersion": "2.3.9",
+    "category": "Control",
+    "tags": [
+        "Misc. Devices",
+        "Tools & Utilities"
+    ],
+    "dateReleased": "2025-03-12",
+    "releaseNotes": "1.0.0 2025-03-12 Initial Release",
+    "drivers": [
+        {
+            "id": "f86055ce-a37c-4c34-b2e5-515c34e392ef",
+            "name": "Pi-hole 6 Blocking Control Parent",
+            "namespace": "Megamind",
+            "location": "https://raw.githubusercontent.com/TheMegamind/Hubitat-Drivers/refs/heads/main/piholeV6BlockingControl/piholeV6BlockingControlParent.groovy",
+            "required": true,
+            "version": "1.0.0"
+        },
+        {
+            "id": "f9455283-3761-4146-bd4c-26c418c9e3a5",
+            "name": "Pi-hole 6 Blocking Control Child",
+            "namespace": "Megamind",
+            "location": "https://raw.githubusercontent.com/TheMegamind/Hubitat-Drivers/refs/heads/main/piholeV6BlockingControl/piholeV6BlockingControlChild.groovy",
+            "required": true,
+            "version": "1.0.0"
+        }
+    ]
+}
