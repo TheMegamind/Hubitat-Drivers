@@ -1,7 +1,6 @@
 {
     "packageName": "Pi-hole v6 Multi-Instance Blocking Control",
     "author": "Megamind",
-    "communityLink": "",
     "version": "1.0.0",
     "minimumHEVersion": "2.3.9",
     "category": "Control",
@@ -9,8 +8,8 @@
         "Misc. Devices",
         "Tools & Utilities"
     ],
-    "dateReleased": "2025-03-12",
-    "releaseNotes": "1.0.0 2025-03-12 Initial Release",
+    "dateReleased": "2025-03-13",
+    "releaseNotes": "1.0.0 2025-03-13 Initial Release",
     "drivers": [
         {
             "id": "f86055ce-a37c-4c34-b2e5-515c34e392ef",
