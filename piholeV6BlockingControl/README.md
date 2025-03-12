@@ -13,8 +13,8 @@ The parent driver dynamically creates and removes child devices based on a JSON 
 ## Features
 
 - **Parent/Child Architecture**  
-  - The **Parent** driver manages multiple Pi-holes via child devices.  
-  - The **Child** driver represents a single Pi-hole, handling HTTP requests (enable/disable/refresh) and authentication.
+  - The **Parent** driver manages multiple Pi-holes via the child devices.  
+  - The **Child** driver manages the individual Pi-hole instances, handling HTTP requests (enable/disable/refresh) and authentication.
 
 - **Dynamic Device Creation**  
   - The parent driver reads a JSON array of Pi-hole configurations (name, URL, password) and automatically creates, updates, or removes child devices accordingly.
@@ -46,10 +46,10 @@ The parent driver dynamically creates and removes child devices based on a JSON 
 ## Installation
 
 1. **Add Parent Driver Code**  
-   - In Hubitat’s “Drivers Code” section, click “New Driver” and paste the contents of the **Parent** driver file (`Pi-hole 6 Blocking Control Parent`), then save.
+   - In Hubitat’s “Drivers Code” section, click “New Driver” and paste the raw contents of the **Parent driver file** ([*piholeV6BlockingControlParent.groovy*](https://raw.githubusercontent.com/TheMegamind/Hubitat-Drivers/refs/heads/main/piholeV6BlockingControl/piholeV6BlockingControlParent.groovy)), then save.
 
 2. **Add Child Driver Code**  
-   - Repeat the above step for the **Child** driver file (`Pi-hole 6 Blocking Control Child`).
+   - Repeat the above step for the **Child driver file**,  ([*piholeV6BlockingControlChild.groovy*](https://raw.githubusercontent.com/TheMegamind/Hubitat-Drivers/refs/heads/main/piholeV6BlockingControl/piholeV6BlockingControlChild.groovy)).
 
 3. **Create a Virtual Device**  
    - Go to “Devices” → “Add Virtual Device.”  
