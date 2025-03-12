@@ -1,7 +1,6 @@
 {
   "author": "Megamind",
   "gitHubUrl": "https://github.com/TheMegamind",
-  "payPalUrl": "",
   "packages": [
     {
       "name": "Pi-hole v6 Multi-Instance Blocking Control",
