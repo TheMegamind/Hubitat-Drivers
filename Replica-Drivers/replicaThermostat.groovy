@@ -15,7 +15,7 @@ public static String version() {return "1.3.5"}
 
 metadata 
 {
-    definition(name: "Replica Thermostat", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Replica-Drivers/main/replicaThermostat.groovy")
+    definition(name: "Replica Thermostat", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Hubitat/main/Replica-Drivers/replicaThermostat.groovy")
     {
         capability "Actuator"
         capability "Battery"
