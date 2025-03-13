@@ -94,7 +94,7 @@ def updated() {
 // Revised initialize() now uses state.piConfig if available; otherwise, falls back to stored data.
 def initialize() {
     // If state.piConfig already exists (from updateConfig), use it.
-    def piName = state.piConfig?.name ?: (device.getDataValue("piholename") ?: device.label)
+    def piName = state.piConfig?.name ?: (device.getDataValue("piholename") ?: device.displayName)
     def piUrl = state.piConfig?.url ?: device.getDataValue("piholeurl")
     def piPassword = state.piConfig?.password ?: device.getDataValue("piholepassword")
     logInfo "Child device configuration: piholename=${piName}, piholeurl=${piUrl}, piholepassword=${piPassword}"
@@ -372,7 +372,7 @@ def updateConfig(newConfig) {
     state.sidExpiration = 0
     // Expect newConfig as a map with keys: piholename, piholeurl, piholepassword
     state.piConfig = [
-        name: newConfig.piholename ?: device.label,
+        name: newConfig.piholename ?: device.displayName,
         url: newConfig.piholeurl ?: (state.piConfig ? state.piConfig.url : ""),
         password: newConfig.piholepassword ?: (state.piConfig ? state.piConfig.password : "")
     ]
