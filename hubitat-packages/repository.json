@@ -3,7 +3,7 @@
   "gitHubUrl": "https://github.com/TheMegamind/Hubitat",
   "packages": [
     {
-      "id": "0d45026b-6c17-49c0-936c-7e060668b03b",
+      "id": "077320f3-6975-4c71-95d8-e3d45e04157b",
       "name": "Pi-hole v6 Multi-Instance Blocking Control Drivers",
       "category": "Control",
       "location": "https://raw.githubusercontent.com/TheMegamind/Hubitat/refs/heads/main/hubitat-packages/manifest/piBlockingManifest.json",
