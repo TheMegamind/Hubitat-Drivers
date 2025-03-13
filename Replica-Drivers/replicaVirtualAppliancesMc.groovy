@@ -17,7 +17,7 @@ public static String version() {return "1.3.1"}
 
 metadata 
 {
-    definition(name: "Replica VirtualAppliancesMc", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Replica-Drivers/main/replicaVirtualAppliancesMc.groovy")
+    definition(name: "Replica VirtualAppliancesMc", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Hubitat/main/Replica-Drivers/replicaVirtualAppliancesMc.groovy")
     {
         capability "Actuator"
         capability "Configuration"
