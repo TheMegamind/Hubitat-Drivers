@@ -1,7 +1,6 @@
 {
     "packageName": "Pi-hole v6 Multi-Instance Blocking Control Drivers",
     "author": "Megamind",
-    "version": "1.0.0",
     "minimumHEVersion": "2.3.9",
     "category": "Control",
     "tags": [
@@ -9,7 +8,7 @@
         "Tools & Utilities"
     ],
     "dateReleased": "2025-03-13",
-    "releaseNotes": "1.0.0 2025-03-13 Initial Release\n",
+    "releaseNotes": "1.0.0 2025-03-13 Initial Release\nDocumentation: https://github.com/TheMegamind/Hubitat-Drivers/blob/main/piholeV6BlockingControl/README.md",
     "documentationLink": "https://github.com/TheMegamind/Hubitat-Drivers/blob/main/piholeV6BlockingControl/README.md",
     "drivers": [
         {
