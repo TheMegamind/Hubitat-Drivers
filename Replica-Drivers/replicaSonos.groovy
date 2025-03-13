@@ -22,7 +22,7 @@ Random rnd = new Random()
 
 metadata 
 {
-    definition(name: "Replica Sonos", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Replica-Drivers/main/replicaSonos.groovy")
+    definition(name: "Replica Sonos", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Hubitat/main/Replica-Drivers/replicaSonos.groovy")
     {
 	capability "Actuator"
 	capability "AudioNotification"
