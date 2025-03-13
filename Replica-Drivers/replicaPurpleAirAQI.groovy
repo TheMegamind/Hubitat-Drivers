@@ -21,7 +21,7 @@ public static String version() {return "1.3.1"}
 
 metadata 
 {
-    definition(name: "replica PurpleAirAQI", namespace: "replica", author: "bbthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Replica-Drivers/main/replicaPurpleAirAQI.groovy")
+    definition(name: "replica PurpleAirAQI", namespace: "replica", author: "bbthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Hubitat/main/Replica-Drivers/replicaPurpleAirAQI.groovy")
     {
         capability "Actuator"
         capability "Sensor"
