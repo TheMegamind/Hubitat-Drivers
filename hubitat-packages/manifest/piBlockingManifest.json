@@ -13,18 +13,18 @@
   "documentationLink": "https://github.com/TheMegamind/Hubitat/blob/main/piholeV6BlockingControl/README.md",
   "drivers": [
     {
-      "id": "38c87dea-c047-4791-9e03-bad3f96129db",
+      "id": "cfb35547-9556-4e75-b5c1-97eb61f7f9b2",
       "name": "Pi-hole 6 Blocking Control Parent",
       "namespace": "Megamind",
-      "location": "https://raw.githubusercontent.com/TheMegamind/Hubitat/refs/heads/main/piholeV6BlockingControl/piholeV6BlockingControlParent.groovy",
+      "location": "https://raw.githubusercontent.com/TheMegamind/Hubitat/main/piholeV6BlockingControl/piholeV6BlockingControlParent.groovy",
       "required": true,
       "version": "1.0.0"
     },
     {
-      "id": "b6a3bf1c-2405-4432-bf3d-14187e2c2c3c",
+      "id": "2dd0e891-81ef-4bbc-8b1c-6ce9c29285da",
       "name": "Pi-hole 6 Blocking Control Child",
       "namespace": "Megamind",
-      "location": "https://raw.githubusercontent.com/TheMegamind/Hubitat/refs/heads/main/piholeV6BlockingControl/piholeV6BlockingControlChild.groovy",
+      "location": "https://raw.githubusercontent.com/TheMegamind/Hubitat/main/piholeV6BlockingControl/piholeV6BlockingControlChild.groovy",
       "required": true,
       "version": "1.0.0"
     }
