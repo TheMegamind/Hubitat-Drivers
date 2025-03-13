@@ -20,7 +20,7 @@
  * 
  *   Date            Description
  *   -------------   -----------------------------------------------------------------------------
- *   03-12-2025      1.0.0 Initial Release
+ *   03-13-2025      1.0.0 Initial Release
  *
  * LINE 30 MAX 
  */
@@ -118,20 +118,20 @@ def createChildDevices() {
     
     // 2. Remove any child devices whose label is NOT in configNames
     getChildDevices().each { child ->
-        if (!configNames.contains(child.label)) {
-            logInfo "Removing child device '${child.label}' because it is no longer in the JSON config"
+        if (!configNames.contains(child.displayName)) {
+            logInfo "Removing child device '${child.displayName}' because it is no longer in the JSON config"
             try {
                 deleteChildDevice(child.deviceNetworkId)
-                logInfo "Removed child device '${child.label}'"
+                logInfo "Removed child device '${child.displayName}'"
             } catch (Exception ex) {
                 // Because the environment doesn't recognize com.hubitat.app.exception.InUseByAppException,
                 // we check the exception message for a clue that the device is still in use by an app.
                 def msg = ex.message?.toLowerCase()
                 if (msg?.contains("in use") || msg?.contains("app")) {
-                    logWarn "Cannot remove child device '${child.label}': device is in use by an app. " +
+                    logWarn "Cannot remove child device '${child.displayName}': device is in use by an app. " +
                             "Remove it from any apps before deleting."
                 } else {
-                    logError "Error removing child device '${child.label}': ${ex.message}"
+                    logError "Error removing child device '${child.displayName}': ${ex.message}"
                 }
             }
         }
@@ -181,7 +181,7 @@ def aggregateChildStatus() {
 
     getChildDevices().each { child ->
         def status = child.currentValue("blockingStatus") ?: "Unknown"
-        aggregatedStatus[child.label] = status
+        aggregatedStatus[child.displayName] = status
         childStatuses << status.toLowerCase()
     }
     // Store a JSON representation of all child statuses
@@ -217,7 +217,7 @@ def updateChildConfigs() {
         return
     }
     getChildDevices().each { child ->
-        def childName = child.label
+        def childName = child.displayName
         def config = configs.find { it.name == childName }
         if (config) {
             def newConfig = [
