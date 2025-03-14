@@ -15,6 +15,7 @@
  *   Date            Description
  *   -------------   ---------------------------------------------------------
  *   03-13-2025      1.0.0 Initial Release
+ *   03-25-2025      1.0.1 Revise importUrl
  *
  * LINE 30 MAX 
  */
@@ -34,7 +35,7 @@ metadata {
         name: "Pi-hole 6 Blocking Control Child",
         namespace: "Megamind",
         author: "Megamind",
-        importUrl: "https://raw.githubusercontent.com/TheMegamind/Hubitat-Drivers/refs/heads/main/piholeV6BlockingControl/piholeV6BlockingControlChild.groovy"
+        importUrl: "https://raw.githubusercontent.com/TheMegamind/Hubitat/main/piholeV6BlockingControl/piholeV6BlockingControlChild.groovy"
     ) {
         capability "Actuator"
         capability "Switch"
