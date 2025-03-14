@@ -9,7 +9,7 @@
       "Tools & Utilities"
   ],
   "dateReleased": "2025-03-14",
-  "releaseNotes": "03-14-2025 1.0.1 Revise importUrl\n1.0.0 2025-03-13 Initial Release\nDocumentation: https://github.com/TheMegamind/Hubitat/blob/main/piholeV6BlockingControl/README.md",
+  "releaseNotes": "03-14-2025 1.0.1 Revise importUrl\n03-13-2025 1.0.0 Initial Release\nDocumentation: https://github.com/TheMegamind/Hubitat/blob/main/piholeV6BlockingControl/README.md",
   "documentationLink": "https://github.com/TheMegamind/Hubitat/blob/main/piholeV6BlockingControl/README.md",
   "drivers": [
     {
