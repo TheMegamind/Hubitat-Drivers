@@ -8,8 +8,8 @@
       "Monitoring",
       "Tools & Utilities"
   ],
-  "dateReleased": "2025-03-13",
-  "releaseNotes": "1.0.0 2025-03-13 Initial Release\nDocumentation: https://github.com/TheMegamind/Hubitat/blob/main/piholeV6BlockingControl/README.md",
+  "dateReleased": "2025-03-14",
+  "releaseNotes": "03-14-2025 1.0.1 Revise importUrl\n1.0.0 2025-03-13 Initial Release\nDocumentation: https://github.com/TheMegamind/Hubitat/blob/main/piholeV6BlockingControl/README.md",
   "documentationLink": "https://github.com/TheMegamind/Hubitat/blob/main/piholeV6BlockingControl/README.md",
   "drivers": [
     {
@@ -18,7 +18,7 @@
       "namespace": "Megamind",
       "location": "https://raw.githubusercontent.com/TheMegamind/Hubitat/main/piholeV6BlockingControl/piholeV6BlockingControlParent.groovy",
       "required": true,
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "id": "2dd0e891-81ef-4bbc-8b1c-6ce9c29285da",
@@ -26,7 +26,7 @@
       "namespace": "Megamind",
       "location": "https://raw.githubusercontent.com/TheMegamind/Hubitat/main/piholeV6BlockingControl/piholeV6BlockingControlChild.groovy",
       "required": true,
-      "version": "1.0.0"
+      "version": "1.0.1"
     }
   ]
 }
