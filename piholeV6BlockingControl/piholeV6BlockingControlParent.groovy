@@ -25,7 +25,7 @@
  *
  * LINE 30 MAX 
  */
-public static String version() {return "1.0.0"}
+public static String version() {return "1.0.1"}
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
