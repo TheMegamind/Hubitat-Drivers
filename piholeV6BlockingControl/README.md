@@ -1,6 +1,6 @@
 # Pi-hole® 6 Blocking Control for Hubitat
 
-This repository provides two Hubitat drivers—**Parent** and **Child**—that allow you to enable or disable ad-blocking on one or more Pi-hole® 6 instances—*either collectively or individually*—from your Hubitat environment. 
+This repository provides two Hubitat drivers—**Parent** and **Child**—that allow users to enable or disable ad-blocking on one or more Pi-hole® 6 instances—*either collectively or individually*—from their Hubitat environment. 
 
 The parent driver dynamically creates and removes child devices based on a JSON configuration, aggregates each Pi-hole’s status, and provides group on/off/enable/disable commands. Each child device handles communication with an individual Pi-hole instance (including authentication, blocking status, and timed disables).
 
@@ -26,7 +26,7 @@ The parent driver dynamically creates and removes child devices based on a JSON 
   - The parent driver aggregates each child’s blocking status into a JSON string and sets its own “switch” attribute based on whether all Pi-holes are “enabled,” any are “error,” etc.
 
 - **Automatic Removal of Unused Child Devices**  
-  - If a Pi-hole is removed from the JSON (or its name changes), the parent can remove the old child device so your Hubitat stays in sync.
+  - If a Pi-hole is removed from the JSON (or its name changes), the parent can remove the old child device so Hubitat stays in sync.
 
 - **Auto-Refresh**  
   - Optional periodic refresh of each Pi-hole’s status. The child driver re-authenticates if needed and updates the parent aggregator.
@@ -39,15 +39,15 @@ The parent driver dynamically creates and removes child devices based on a JSON 
 ## Requirements
 
 - **Hubitat Elevation** (tested on 2.2.x or later, though older versions may work).  
-- **Pi-hole 6** instance(s) accessible from your Hubitat hub’s network.
+- **Pi-hole 6** instance(s) accessible from Hubitat hub’s network.
 
 ---
 
 ## Installation & Configuration
 
-Installation via [**Hubitat Package Manager (HPM)**](https://hubitatpackagemanager.hubitatcommunity.com/installing.html) is recommended to ensure your drivers remain up-to-date with feature updates, bugfixes, or other changes. In HPM, search for the keyword "Pi-hole" and choose the "Pi-hole v6 Multi-Instance Blocking Control Drivers."
+Installation via [**Hubitat Package Manager (HPM)**](https://hubitatpackagemanager.hubitatcommunity.com/installing.html) is recommended to ensure the drivers remain up-to-date with feature updates, bugfixes, or other changes. In HPM, search for the keyword "Pi-hole" and choose the "Pi-hole v6 Multi-Instance Blocking Control Drivers."
 
-If you install via *HPM*, **skip to Step 3** below.    
+If installed via *HPM*, **skip to Step 3** below.    
 
 ---
 
@@ -69,16 +69,16 @@ If you install via *HPM*, **skip to Step 3** below.
    - Name the device (e.g., “Pi-hole Control”).
 
 4. **Configure the Parent Device**  
-   - Open the device page for your new parent device.  
-   - In “Preferences,” set your JSON array of Pi-hole configurations, e.g.:
+   - Open the device page for the new parent device.  
+   - In “Preferences,” set the JSON array of Pi-hole configurations, e.g.:
      ```json
      [
        {"name": "Pi-hole 1", "url": "https://192.168.1.15:443", "password": "pass1"},
        {"name": "Pi-hole 2", "url": "https://192.168.1.11:443", "password": "pass2"}
      ]
      ```
-     - For Pi‑hole installations without an admin password, the "password" field in your JSON should be left empty (i.e., `"password": ""`) or the field omitted altogether, (i.e.,`{"name": "Pi-hole 1", "url": "https://192.168.1.15:443"}`
-     - **Important**: While `url` and `password` definitions can be modified later to accommodate changes in your Pi-holes, changes to the `name` will **remove the existing devices and create new ones**. This will impact any any rules, pistons, or apps that use your child devices. 
+     - For Pi‑hole installations without an admin password, the "password" field in the JSON should be left empty (i.e., `"password": ""`) or the field omitted altogether, (i.e.,`{"name": "Pi-hole 1", "url": "https://192.168.1.15:443"}`
+     - **Important**: While `url` and `password` definitions can be modified later to accommodate changes in Pi-holes, changes to the `name` will **remove the existing devices and create new ones**. This will impact any any rules, pistons, or apps that use the child devices. 
    - Adjust other preferences (default blocking time, auto-refresh interval, logging options) as needed.  
    - Click “Save Preferences.” The parent driver will create or update child devices accordingly.
 
@@ -106,7 +106,7 @@ If you install via *HPM*, **skip to Step 3** below.
 ### Logging
 
 - **Debug Logging** can be toggled in each driver’s preferences and auto-disables after 30 minutes if enabled.  
-- **Info Logging** can be toggled as well, so you only see essential logs if desired.
+- **Info Logging** can be toggled as well, so the user only sees essential logs if desired.
 
 ---
 
@@ -114,8 +114,8 @@ If you install via *HPM*, **skip to Step 3** below.
 
 1. **JSON Configuration**  
    - Each Pi-hole is defined by a JSON object with `name`, `url`, and an optional `password`.  
-   - If you remove or rename a Pi-hole in the JSON, the parent automatically removes the old child device and creates a new one. Any existing automations referencing the old device need to be updated or removed.
-     - *Note: Hubitat will sometimes refuse to remove a child device if it is “in use” by an app. If that occurs, you’ll see an error message in the logs.*
+   - If a Pi-hole is removed from or renamed in the JSON, the parent automatically removes the old child device and creates a new one. Any existing automations referencing the old device need to be updated or removed.
+     - *Note: Hubitat will sometimes refuse to remove a child device if it is “in use” by an app. If that occurs, an error message will appear in the logs.*
 
 2. **Authentication & Timed Disables**  
    - Child drivers re-authenticate if a Pi-hole session ID expires.  
@@ -126,7 +126,7 @@ If you install via *HPM*, **skip to Step 3** below.
    - The parent’s aggregator can interpret these states and set its switch to “error.”
 
 4. **Renaming**  
-   - *Warning**: If you change a Pi-hole’s `name` in the configuration JSON, the parent sees it as a new device and removes the old child (label mismatch).
+   - *Warning**: If a Pi-hole’s `name` is modified in the configuration JSON, the parent will see it as a new device and remove the old child.
 
 ---
 
