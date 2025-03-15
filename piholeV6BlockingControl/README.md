@@ -1,12 +1,12 @@
 # Pi-hole® 6 Blocking Control for Hubitat
 
-This repository provides two Hubitat drivers—**Parent** and **Child**—that allows you enable or disable ad-blocking on one or more Pi-hole® 6 instances—*either collectively or individually*—from your Hubitat environment. 
+This repository provides two Hubitat drivers—**Parent** and **Child**—that allow you to enable or disable ad-blocking on one or more Pi-hole® 6 instances—*either collectively or individually*—from your Hubitat environment. 
 
 The parent driver dynamically creates and removes child devices based on a JSON configuration, aggregates each Pi-hole’s status, and provides group on/off/enable/disable commands. Each child device handles communication with an individual Pi-hole instance (including authentication, blocking status, and timed disables).
 
 ---
   
-<h6 align="center">**NOTE**: This project is independently-maintained. The maintainer is not affiliated with the Official Pi-hole® Project at https://github.com/pi-hole in any way. Pi-hole® and the Pi-hole logo are registered trademarks of Pi-hole LLC. </h6>
+<h6 align="center">Note: This project is independently-maintained. The maintainer is not affiliated with the Official Pi-hole® Project at https://github.com/pi-hole in any way. Pi-hole® and the Pi-hole logo are registered trademarks of Pi-hole LLC. </h6>
 
 ---
 
@@ -43,13 +43,25 @@ The parent driver dynamically creates and removes child devices based on a JSON 
 
 ---
 
-## Installation
+## Installation & Configuration
 
-1. **Add Parent Driver Code**  
-   - In Hubitat’s “Drivers Code” section, click “New Driver” and paste the raw contents of the **Parent driver file** ([*piholeV6BlockingControlParent.groovy*](https://raw.githubusercontent.com/TheMegamind/Hubitat-Drivers/refs/heads/main/piholeV6BlockingControl/piholeV6BlockingControlParent.groovy)), then save.
+Installation via [**Hubitat Package Manager (HPM)**](https://hubitatpackagemanager.hubitatcommunity.com/installing.html) is recommended to ensure your drivers remain up-to-date with feature updates, bugfixes, or other changes. In HPM, search for the keyword "Pi-hole" and choose the "Pi-hole v6 Multi-Instance Blocking Control Drivers."
 
-2. **Add Child Driver Code**  
-   - Repeat the above step for the **Child driver file**,  ([*piholeV6BlockingControlChild.groovy*](https://raw.githubusercontent.com/TheMegamind/Hubitat-Drivers/refs/heads/main/piholeV6BlockingControl/piholeV6BlockingControlChild.groovy)).
+If you install via *HPM*, **skip to Step 3** below.    
+
+---
+
+<h4>Manual (Non-HPM) Installation</h4>
+
+1. **Add Parent Driver Code**  *(Manual Installation Only)*
+   - In Hubitat’s “Drivers Code” section, click “New Driver” and paste the raw contents of the **Parent driver file** ([*piholeV6BlockingControlParent.groovy*](https://raw.githubusercontent.com/TheMegamind/Hubitat/main/piholeV6BlockingControl/piholeV6BlockingControlParent.groovy)), then save.
+
+2. **Add Child Driver Code**  *(Manual Installation Only)*
+   - Repeat the above step for the **Child driver file**,  ([*piholeV6BlockingControlChild.groovy*](https://raw.githubusercontent.com/TheMegamind/Hubitat/main//piholeV6BlockingControl/piholeV6BlockingControlChild.groovy)).
+
+---
+
+<h4>Configuration (All Installations)</h4>
 
 3. **Create a Virtual Device**  
    - Go to “Devices” → “Add Virtual Device.”  
@@ -65,7 +77,8 @@ The parent driver dynamically creates and removes child devices based on a JSON 
        {"name": "Pi-hole 2", "url": "https://192.168.1.11:443", "password": "pass2"}
      ]
      ```
-   - **Note**: While `url` and `password` definitions can be modified as needed to accomodate changes in your Pi-holes, changes to the `name' will *remove the existing devices* and create new ones. This will impact any any apps that use your child devices. 
+     - For Pi‑hole installations without an admin password, the "password" field in your JSON should be left empty (i.e., `"password": ""`) or the field omitted altogether, (i.e.,`{"name": "Pi-hole 1", "url": "https://192.168.1.15:443"}`
+     - **Important**: While `url` and `password` definitions can be modified later to accommodate changes in your Pi-holes, changes to the `name' will *remove the existing devices* and create new ones. This will impact any any rules, pistons, or apps that use your child devices. 
    - Adjust other preferences (default blocking time, auto-refresh interval, logging options) as needed.  
    - Click “Save Preferences.” The parent driver will create or update child devices accordingly.
 
@@ -78,7 +91,7 @@ The parent driver dynamically creates and removes child devices based on a JSON 
 - **Enable / Disable**  
   - These commands on the parent device enable and disable *all* Pi-holes. `Disable`, unlike `off`, accepts a timer in seconds (defaults to `defaultBlockingTime`)
 - **On / Off**
-  - Similar to enable/disable (but without the `disable` commands 'custom' timer option), are included for use with voice-assistants (e.g., Alexa, Google Home), which commonly can't recognize custom commands. 
+  - Similar to enable/disable (but without the `disable` commands 'custom' timer option), are included for use with voice-assistants (e.g., Alexa, Google Home), which have difficulty recognizing custom commands like `enable` or `disable`. 
 - **Refresh**  
   - Refreshes the current blocking status of all child devices, which then aggregates to the parent device.
 
@@ -101,8 +114,8 @@ The parent driver dynamically creates and removes child devices based on a JSON 
 
 1. **JSON Configuration**  
    - Each Pi-hole is defined by a JSON object with `name`, `url`, and an optional `password`.  
-   - If you remove or rename a Pi-hole in the JSON, the parent automatically removes the old child device or creates a new one.
-   - *Note*: Hubitat will refuse to remove a child device if it’s “in use” by an app. If this occurs, an error message instructing the user to remove the device from any apps before deleting will appear in the logs.
+   - If you remove or rename a Pi-hole in the JSON, the parent automatically removes the old child device and creates a new one. Any existing automations referencing the old device need to be updated or removed.
+     - *Note: Hubitat will sometimes refuse to remove a child device if it is “in use” by an app. If that occurs, you’ll see an error message in the logs.*
 
 2. **Authentication & Timed Disables**  
    - Child drivers re-authenticate if a Pi-hole session ID expires.  
