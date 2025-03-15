@@ -1,6 +1,6 @@
 # Pi-hole® 6 Blocking Control for Hubitat
 
-This repository provides two Hubitat drivers—**Parent** and **Child**—that allow users to enable or disable ad-blocking on one or more Pi-hole® 6 instances—*either collectively or individually*—from their Hubitat environment. 
+This repository provides two Hubitat drivers that together allow users to enable or disable ad-blocking on one or more Pi-hole® 6 instances—*either collectively or individually*—from their Hubitat environment. 
 
 The parent driver dynamically creates and removes child devices based on a JSON configuration, aggregates each Pi-hole’s status, and provides group on/off/enable/disable commands. Each child device handles communication with an individual Pi-hole instance (including authentication, blocking status, and timed disables).
 
