@@ -16,7 +16,7 @@ public static String version() {return "1.3.1"}
 
 metadata 
 {
-    definition(name: "Replica Energy Monitoring Plug", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Hubitat/main/Replica-Drivers/replicaEnergyMonitoringPlug.groovy")
+    definition(name: "Replica Energy Monitoring Plug", namespace: "replica", author: "bthrock", importUrl:"https://raw.githubusercontent.com/TheMegamind/Hubitat/main/Replica-Drivers/Replica-Drivers/replicaEnergyMonitoringPlug.groovy")
     {
 	capability "Actuator"
 	capability "Configuration"
