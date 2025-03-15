@@ -78,7 +78,7 @@ If you install via *HPM*, **skip to Step 3** below.
      ]
      ```
      - For Pi‑hole installations without an admin password, the "password" field in your JSON should be left empty (i.e., `"password": ""`) or the field omitted altogether, (i.e.,`{"name": "Pi-hole 1", "url": "https://192.168.1.15:443"}`
-     - **Important**: While `url` and `password` definitions can be modified later to accommodate changes in your Pi-holes, changes to the `name` will *remove the existing devices* and create new ones. This will impact any any rules, pistons, or apps that use your child devices. 
+     - **Important**: While `url` and `password` definitions can be modified later to accommodate changes in your Pi-holes, changes to the `name` will **remove the existing devices and create new ones**. This will impact any any rules, pistons, or apps that use your child devices. 
    - Adjust other preferences (default blocking time, auto-refresh interval, logging options) as needed.  
    - Click “Save Preferences.” The parent driver will create or update child devices accordingly.
 
