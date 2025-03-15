@@ -118,8 +118,10 @@ If installed via *HPM*, **skip to Step 3** below.
      - *Note: Hubitat will sometimes refuse to remove a child device if it is “in use” by an app. If that occurs, an error message will appear in the logs.*
 
 2. **Authentication & Timed Disables**  
-   - Child drivers re-authenticate if a Pi-hole session ID expires.  
    - `disable(timer)` calls the Pi-hole API to disable blocking for `timer` seconds, then re-checks status afterward.
+   - Child drivers re-authenticate if a Pi-hole session ID expires.  
+     - <sub>**Note**: The session timeout can be modified from Pi-hole's web admin page. Go to **Settings** > **All settings** (if you don't see the menu button, open any settings page and select **Expert** mode), then click on the **Webserver and API** tab. Modify the timeount under `webserver.session.timeout'.</sub>
+
 
 3. **Error Handling**  
    - If authentication fails or the Pi-hole URL is invalid, the child sets `blockingStatus` to “Auth Failed” or “Invalid URL.”  
