@@ -132,4 +132,4 @@ If you install via *HPM*, **skip to Step 3** below.
 
 ## License
 
-This project is licensed under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0). Pi-hole® is a registered trademark of Pi-hole LLC. This driver is not affiliated with or endorsed by Pi-hole LLC.
+This project is licensed under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).
